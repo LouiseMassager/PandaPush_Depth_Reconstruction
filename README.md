@@ -1,9 +1,9 @@
-## PandaPush_RL_CV :video_camera: :game_die: :mechanical_arm: :robot:
+# PandaPush_RL_CV :video_camera: :game_die: :mechanical_arm: :robot:
 ```diff
 - project ongoing
 ```
 
-### Resources
+## Resources
 #### For this project
 - [Colaboratory](https://colab.research.google.com/?utm_source=scs-index)
 - [Mediapipe](https://google.github.io/mediapipe/solutions/objectron) OR [Deep_Object_Pose](https://github.com/NVlabs/Deep_Object_Pose) : for detection of object based on 3D model (with ML training) <br />
@@ -12,7 +12,7 @@
 
 
 <br /> <br /> <br />
-### Packages
+## Packages
 - python3
 
 #### Computer Vision (CV)
