@@ -6,7 +6,7 @@ Project on the detection of 3D objects with a ZED2 Depth camera based on a class
 Potentially tested for the control of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
 
 # Updates
-2022/11/08 - 
+2022/11/20 - mesh convertisser from 3D model (.stl) to point cloud (.ply) and vis versa
 
 ## Resources
 #### For this project
