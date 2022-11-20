@@ -53,7 +53,7 @@ def stl_to_ply(mesh_name):
 	print("stl to ply")
 	f=open(mesh_name,"r+")
 	for line in f:
-		if 'vertex' in line:
+		if 'vertex' in line and 'command' not in line:
 			k=line.index('vertex')
 			line=line[k:]
 			liste=line.split(' ')
@@ -67,9 +67,45 @@ def stl_to_ply(mesh_name):
 				b=[]
 	return datalist_to_ply(a,mesh_name[0:-4])
 
+def datalist_to_stl(pointlist,facelist,mesh_name):
+	datafile = open(mesh_name+".stl",'w+')
+	datafile.write('solid "'+mesh_name+'"\n')
+	
+	for face in facelist:
+		datafile.write('facet normal 0 0 0'+'\n') 
+		datafile.write('outer loop\n')
+		for i in range(3):
+			datafile.write('vertex '+list_to_string(pointlist[int(face[i+1])])+'\n')
+		datafile.write('endloop\n')
+		datafile.write('endfacet\n')
+	datafile.write('endsolid "'+mesh_name) 
+	return mesh_name+".stl"
+
 def ply_to_stl(mesh_name):
 	print("ply to stl")
-	return mesh_name[0:-4]+".stl"
+	f=open(mesh_name,"r+")
+	phase='init'
+	a=[]
+	pointlist=[]
+	facelist=[]
+	for line in f:
+		if phase=='init':
+			if 'end_header' in line and 'command' not in line:
+				phase='point'
+		else:
+			line=line.replace('\t',' ')
+			line=line.replace('\n',' ')
+			a=line.split(' ')
+		if phase=='point'and len(a)>=3:
+			if a[0]=="3":
+				phase="face"
+			else:
+				pointlist.append([a[0],a[1],a[2]])		
+		if phase=='face':
+			facelist.append([a[0],a[1],a[2],a[3]])
+	#print(facelist)
+	#print(pointlist)
+	return datalist_to_stl(pointlist,facelist,mesh_name[0:-4])
 
 
 try:
@@ -82,7 +118,8 @@ finally:
 
 
 if mesh_name[-4:]==".ply":
-	display_ply(mesh_name)
+	ply_to_stl(mesh_name)
+	#display_ply(mesh_name)
 elif mesh_name[-4:]==".stl":
 	display_ply(stl_to_ply(mesh_name))
 	#stl_to_ply(mesh_name)
