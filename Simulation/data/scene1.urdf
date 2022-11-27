@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot name="pandapush">
+	<link name="bunny.stl">
+		<visual>
+		<origin rpy="0 0 0" xyz="0 0 0"/>
+		<geometry>
+		<mesh scale= ".0010 .0010 .0010" filename="/home/kiwix/Documents/Thesis/PythonFiles/MeshTest/bunny.stl"/>
+		</geometry>
+		<color rgba="0.52 0.26 0.44 1"/>
+		</visual>
+	</link>
+</robot>
