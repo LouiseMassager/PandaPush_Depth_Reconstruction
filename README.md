@@ -10,10 +10,10 @@ Potentially tested for the control of a Panda robot for non-prehensile manipulat
 
 
 # Updates
-2022/11/20 - mesh convertisser from 3D model (.stl) to point cloud (.ply) and vis versa
-2022/11/20 - implementation of the 3D objects in Pybullet simulation
-2020/11/27 - code to record and playback videos of realsense camera (.bag)
-2020/11/27 - code to use realsense camera with and without tensorflow
+2022/11/20 - mesh convertisser from 3D model (.stl) to point cloud (.ply) and vis versa <br />
+2022/11/20 - implementation of the 3D objects in Pybullet simulation <br />
+2020/11/27 - code to record and playback videos of realsense camera (.bag) <br />
+2020/11/27 - code to use realsense camera with and without tensorflow <br />
 
 ## Resources
 #### For this project
