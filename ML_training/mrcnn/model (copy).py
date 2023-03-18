@@ -1271,7 +1271,7 @@ def load_image_gt(dataset, config, image_id, augmentation=None,
         assert image.shape == image_shape, "Augmentation shouldn't change image size"
         assert mask.shape == mask_shape, "Augmentation shouldn't change mask size"
         # Change mask back to bool
-        mask = mask.astype(bool)
+        mask = mask.astype(np.bool)
 
     # Note that some boxes might be all zeros if the corresponding mask got cropped out.
     # and here is to filter them out
@@ -2358,10 +2358,7 @@ class MaskRCNN(object):
             workers = 0
         else:
             workers = multiprocessing.cpu_count()
-        print("F1")
-        workers=1
-        use_multiprocessing=False
-        print("F2")
+        print("F")
         self.keras_model.fit(
             train_generator,
             initial_epoch=self.epoch,
