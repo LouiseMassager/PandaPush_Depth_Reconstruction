@@ -106,9 +106,9 @@ topic update - use of realsense camera instead of ZED2
 ## Resources
 #### For this project
 - [Colaboratory](https://colab.research.google.com/?utm_source=scs-index) : for working environment (provide online GPU)
-- [Mediapipe](https://google.github.io/mediapipe/solutions/objectron) OR [Deep_Object_Pose](https://github.com/NVlabs/Deep_Object_Pose) : for detection of object based on 3D model (with ML training) <br />
-[Mediapipecodeexample](https://www.youtube.com/watch?v=f-Ibri14KMY&ab_channel=NicolaiNielsen-ComputerVision%26AI)
+- [Mask rcnn for tensorflow 2.x](https://github.com/alsombra/Mask_RCNN-TF2) : for instance segmentation using supervised learning
 
 #### For general knowledge
 - [Yolo](https://pjreddie.com/darknet/yolo/) : Real-Time Object Detection (for common knowledge)
-
+- [Mediapipe](https://google.github.io/mediapipe/solutions/objectron) OR [Deep_Object_Pose](https://github.com/NVlabs/Deep_Object_Pose) : for detection of object based on 3D model (with ML training) <br />
+[Mediapipecodeexample](https://www.youtube.com/watch?v=f-Ibri14KMY&ab_channel=NicolaiNielsen-ComputerVision%26AI)
