@@ -22,7 +22,8 @@ python3 main.py filename.bag
 
 ## Results
 :trophy: click [here](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/res) to see the current results :trophy:
-
+- [x] Synthetic database generation
+- [x] Mask-rcnn training
 - [x] Data acquisition (recording, colored ply, RGB-D png)
 - [x] Segmentation (top-view)
 - [ ] Segmentation (random-view)
