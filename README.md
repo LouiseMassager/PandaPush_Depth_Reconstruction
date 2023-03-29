@@ -5,21 +5,6 @@
 Project on the detection of 3D objects with a realsense Depth camera based on a classifier (Machine Learning) trained with a 3D model of the object.
 Potentially tested for the control of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
 
-
-## Deployment
-
-To record in live:
-```bash
-cd UpdatedCode/2023_02_10
-python3 main.py
-```
-
-To open a recording file "filename.bag", put it in the folder UpdatedCode/2023_02_10/data/recordings and then:
-```bash
-cd UpdatedCode/2023_02_10
-python3 main.py filename.bag
-```
-
 ## Results
 <img src="res/plan.jpg" width=1000>
 
@@ -35,6 +20,19 @@ python3 main.py filename.bag
 - [ ] Scene scan
 - [ ] Robustness improvement (object shapes, point of view, performance...)
 
+## Deployment
+
+To record in live:
+```bash
+cd UpdatedCode/2023_02_10
+python3 main.py
+```
+
+To open a recording file "filename.bag", put it in the folder UpdatedCode/2023_02_10/data/recordings and then:
+```bash
+cd UpdatedCode/2023_02_10
+python3 main.py filename.bag
+```
 
 ## Methodology
 
