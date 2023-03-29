@@ -1,4 +1,4 @@
-# PandaPush_RL_CV :video_camera: :game_die: :mechanical_arm: :robot:
+# PandaPush_Depth_Reconstruction :video_camera: :game_die: :mechanical_arm: :robot:
 ```diff
 - project ongoing
 ```
@@ -21,6 +21,8 @@ python3 main.py filename.bag
 ```
 
 ## Results
+<img src="res/plan.jpg" width=1000>
+
 :trophy: click [here](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/res) to see the current results :trophy:
 - [x] Synthetic database generation
 - [x] Mask-rcnn training
