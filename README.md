@@ -6,7 +6,7 @@ Project on the detection of 3D objects with a realsense Depth camera based on a 
 Potentially tested for the control of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
 
 ## Results
-<img src="res/plan.jpg" width=1000>
+<img src="res/plan.png" width=1000>
 
 :trophy: click [here](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/res) to see the current results :trophy:
 - [x] Synthetic database generation
