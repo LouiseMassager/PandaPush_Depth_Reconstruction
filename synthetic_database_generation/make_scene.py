@@ -19,6 +19,9 @@ import pymeshlab
 
 import copy
 
+
+############################################################################################
+
 def add_note(note,path="data/cleandata/note.txt",cleanfilefirst=True):
 	if cleanfilefirst:
 		f=open(path,'w+')
@@ -75,7 +78,7 @@ def make_obj(ply_names):
 		obj_names.append(name[0:-4]+".obj")
 	return obj_names
 
-def make_label_txt(seg_opengl,path):
+def make_label_txt(seg_opengl,path,class_names=[]):
 	float_array=seg_opengl*500
 	seg_opengl= float_array.astype(int)
 	k=np.unique(seg_opengl)
@@ -83,6 +86,8 @@ def make_label_txt(seg_opengl,path):
 	text=''
 	image=np.zeros(size)
 	for t in range(len(k)-1):
+		if class_names !=[]:
+			text+=str(class_names[t])+':'
 		for a in range(len(seg_opengl)):
 			for b in range(len(seg_opengl[0])):
 				if seg_opengl[a][b]==k[t+1]:
@@ -122,7 +127,91 @@ def make_label(seg_opengl,path):
 		cv2.imwrite(path+"_"+str(t)+".jpg",image)
 	return
 
-def find_stable_positions(names, image_res_name="example",saving_images=False):
+
+
+
+
+def position_closeby(objectIDs):
+	# OBJECT PLACEMENT
+	Lx=0
+	Ly=0
+	lx=0
+	ly=0
+	dir_pos=[[[-1,0],[1,0]],[[0,-1],[0,1]]]
+	dir_name=[["at left"," at right"],["on the back"," in front"]]
+	dir_try=False
+	
+	dist=0
+	nogo=[]
+	dir_prev=[0,0]
+	h_or_v=0
+	p_or_n=0
+	print("\tPlace element n°1 at center")
+	for elem in objectIDs:
+		aabb = p.getAABB(elem)
+		aabbMin = aabb[0]
+		aabbMax = aabb[1]
+		
+		lx_prev=lx
+		ly_prev=ly
+		lx=aabbMax[0]-aabbMin[0]
+		ly=aabbMax[1]-aabbMin[1]
+		lz=aabbMax[2]-aabbMin[2]
+		
+		Lx_save=Lx
+		Ly_save=Ly
+		Lz=lz/2+dist
+		
+		while (dir_try):
+			#print(nogo)
+			while dir_pos[h_or_v][p_or_n] in nogo or dir_pos[h_or_v][p_or_n]==dir_prev:
+				h_or_v=random.randint(0, 2) #0=left-right|1=front-back
+				if h_or_v==2:
+					h_or_v=1 #prefer left & right=> more space
+				p_or_n=random.randint(0, 1) #0=left-back |1=right-front
+			dir_chosen=dir_pos[h_or_v][p_or_n]
+			dir_prev=dir_chosen
+			
+			print("\tPlace element n°{} {}".format(elem,dir_name[h_or_v][p_or_n]))
+			
+			Lx+=(lx_prev+lx)/2*dir_chosen[0]
+			Ly+=(ly_prev+ly)/2*dir_chosen[1]
+			
+			Lx+=dist*dir_chosen[0]
+			Ly+=dist*dir_chosen[1]
+			
+			#print("\tLx {}".format(Lx))
+			#print("\tLy {}".format(Ly))
+			
+			aabbMin_n=[Lx-lx/2,Ly-ly/2,0]
+			aabbMax_n=[Lx+lx/2,Ly+ly/2,lz]
+			#print(p.getOverlappingObjects(aabbMin_n,aabbMax_n))
+			if len(p.getOverlappingObjects(aabbMin_n,aabbMax_n))>2:
+				Lx=Lx_save
+				Ly=Ly_save
+				#dir_try=False
+				nogo.append(dir_chosen)
+				print("\t\tOverlapping !")
+			else:
+				print("\t\tOK !")
+				nogo=[]#[dir_chosen]
+				dir_try=False
+			if len(nogo)==4:
+				dist+=0.01
+				print("\t\tNo possible directions. Re-try with distance of {}".format(dist))
+				nogo=[]
+			#time.sleep(1)
+		dir_try=True
+		dist=0
+		
+		p.resetBasePositionAndOrientation(elem,[Lx,Ly,Lz],[0,0,0,1])
+	return
+
+
+
+
+
+def generate_random_scene(names, image_res_name="example",saving_images=False,class_names=[],scene_type="random"):
 	
 	### SIMULATION PARAMETERS:
 	cid= p.connect(p.GUI, options='--background_color_red=1.0 --background_color_green=1.0 --background_color_blue=1.0')
@@ -211,7 +300,9 @@ def find_stable_positions(names, image_res_name="example",saving_images=False):
 	p.setGravity(0, 0, -10)
 	p.setRealTimeSimulation(1)
 	
-	
+	### RESET OBJECT POSITION (if scene type different that random)
+	if scene_type=="closeby":
+		position_closeby(objectIDs)
 	
 	### WAIT FOR STABLE POSITION
 	start_time = time.time()
@@ -252,48 +343,50 @@ def find_stable_positions(names, image_res_name="example",saving_images=False):
 		depth_opengl = far * near / (far - (far - near) * depth_buffer_opengl)
 		seg_opengl = np.reshape(images[4], [height, width]) * 1. / 255.
 		
+		#change background to white
+		lab=np.array(seg_opengl, dtype=bool)
+		a=rgb_opengl[0][0][3]
+		for i in range(len(seg_opengl.tolist())):
+			for j in  range(len(seg_opengl.tolist()[0])):
+				if not lab[i][j]:
+					#print(rgb_opengl[i][j])
+					rgb_opengl[i][j]=[1,1,1,a]
 		
-		"""
-		rgb_opengl = np.reshape(images[2], (height, width, 4)) * 1. / 255.
-		depth_buffer_opengl = np.reshape(images[3], [width, height])
-		depth_opengl = far * near / (far - (far - near) * depth_buffer_opengl)
-		seg_opengl = np.reshape(images[4], [width, height]) * 1. / 255.
-		"""
-		
-		#time.sleep(1)
-		"""
-		# Plot both images - should show depth values of 0.45 over the cube and 0.5 over the plane
-		plt.rcParams['figure.figsize'] = [4, 10]	
-		
-		plt.subplot(6, 1, 1)
-		plt.imshow(depth_opengl, cmap='gray', vmin=0, vmax=1)
-		plt.title('Depth OpenGL3')
-
-		plt.subplot(5, 1, 3)
-		plt.imshow(rgb_opengl)
-		plt.title('RGB OpenGL3')
-
-		plt.subplot(5, 1, 5)
-		plt.imshow(seg_opengl)
-		plt.title('Seg OpenGL3')
-		"""
-		plt.imsave("data/images/depth/"+image_res_name+".jpg", depth_opengl)
-		#plt.imsave("data/images/rgb/r"+image_res_name+".jpg", rgb_opengl)
-		
-		#make_label(seg_opengl,"data/images/seg/s"+image_res_name)
-		#cv2.imwrite("data/images/seg/s"+image_res_name+".jpg",make_label_1pic(seg_opengl))
-		make_label_txt(seg_opengl,"data/images/seg/"+image_res_name+".txt")
+		#normalize depth
+		b=np.unique(depth_opengl).tolist()
+		b.remove(max(b))
+		a=max(b)
+		for i in range(len(depth_opengl.tolist())):
+			for j in range(len(depth_opengl.tolist()[0])):
+				if depth_opengl[i][j]==1:
+					depth_opengl[i][j]=a
+		print(depth_opengl.min())
+		print(depth_opengl.max())
+		normalized_image = depth_opengl
+		normalized_image=(depth_opengl - depth_opengl.min()) / (depth_opengl.max() - depth_opengl.min())
 		
 		
-		for a in ["depth/"+image_res_name+".jpg","seg/"+image_res_name+".txt"]:
+		#save rgb & depth images in .jpg
+		#plt.imsave("data/images/depth/"+image_res_name+".jpg", depth_opengl)
+		plt.imsave("data/images/depth/"+image_res_name+".jpg", normalized_image)
+		plt.imsave("data/images/rgb/"+image_res_name+".jpg", rgb_opengl)
+		
+		#save label in .txt
+		make_label_txt(seg_opengl,"data/images/seg/"+image_res_name+".txt",class_names=class_names)
+		
+		
+		#wait for finishing saving to finish before next simulation
+		for a in ["depth/"+image_res_name+".jpg","rgb/"+image_res_name+".jpg","seg/"+image_res_name+".txt"]:
 			while not pathlib.Path("data/images/"+a).is_file():
 				time.sleep(1./60.)
-		#time.sleep(5)#time to save image
-		
-		
 		
 	p.disconnect()
+	
+	if unstable: #recursion if unstable => relaunch the function!
+		positions=generate_random_scene(names, image_res_name,saving_images,class_names,scene_type)
+	
 	return positions
+
 
 
 
@@ -457,45 +550,62 @@ def adapt_dataset(ply_names,positions,cam_pose=[0,0,10],datasetname="example",cl
 	return
 	
 
-def random_set(names):
-	number_objects=random.randint(1,len(names))
+def random_set(names,max=None,classes=None,dif_obj=True):
+	if max is None:
+		max=len(names)
+	number_objects=random.randint(1,max)
 	choices=[i for i in range(len(names))]
 	selected_names=[]
-	
-	for a in range(number_objects):
-		#print(choices)
+	selected_classes=[]
+	if dif_obj:
+		for a in range(number_objects):
+			#print(choices)
+			choice=random.randint(0,len(choices)-1)
+			#print(choice)
+			selected_names.append(names[choices[choice]])
+			if classes!=None:
+				selected_classes.append(classes[choices[choice]])
+			del choices[choice]
+	else:
 		choice=random.randint(0,len(choices)-1)
-		#print(choice)
-		selected_names.append(names[choices[choice]])
-		del choices[choice]
-	return selected_names
+		selected_names=[names[choices[choice]]] * number_objects
+		if classes!=None:
+			selected_classes= [classes[choices[choice]]]*number_objects
+	
+	return (selected_names, selected_classes)
 
 ############################################################################################
-stl_names=[]
-ply_names=[]
+print("Generate Synthetic Dataset...")
+
+
+print("*Choosing MODELS DATASET to use:")
+n_cube = int(input("\t How many CUBES in data folder ? [Default is 60]\n\t-> "))
+n_cylinder = int(input("\t How many CYLINDERS in data folder ? [Default is 60]\n\t-> "))
+
+sim_or_dif = int(input("\t Similar or different objects in the scene ? [Default is 1]\n\t\t[0] SAME-> type '0'\n\t\t[1] DIFFERENT-> type '1'\n\t-> "))
+
+#dataset reference
 obj_names=[]
+class_names=[]
 
-for a in range(10):
-	stl_names.append("data/originaldata/cube{}.stl".format(str(a+1)))
-	ply_names.append("data/originaldata/cube{}.ply".format(str(a+1)))
-	obj_names.append("data/originaldata/cube{}.obj".format(str(a+1)))
+for a in range(n_cube):
+	obj_names.append("data/originaldata/cube{}.obj".format(a+1))
+	class_names.append(0)
+for a in range(n_cylinder):
+	obj_names.append("data/originaldata/cylinder{}.obj".format(a+1))
+	class_names.append(1)
 
-"""
-cleandatafirst=True
-for z in range(5):
-	positions=find_stable_positions(stl_names)
-	adapt_dataset(ply_names,positions,datasetname=str(z),cleandatafirst=cleandatafirst)
-	cleandatafirst=False
-"""
+print("*Choosing SYNTHETIC DATA to generate:")
+n_scene=int(input("\t How many ? [Default is 100]\n\t-> "))
+init=int(input("\t Starting at... ? [Default is 0]\n\t-> "))
+max_obj=int(input("\t Maximum number of objects per scene ? [Default is 10]\n\t-> "))
+t_scene=int(input("\t Type of the scene ? [Default is 1]\n\t\t[0] clustered objects next to each other-> type '0'\n\t\t[1] objects randomly clustered-> type '1'\n\t-> "))
 
-for z in range(50):
-	positions=find_stable_positions(random_set(obj_names),str(z),saving_images=True)
+scene_types=["closeby","random"]
 
-
-
-#positions=find_stable_positions(random_set(obj_names),"000",saving_images=True)
-
-
-
-
+print("*Start SYNTHETIC DATASET GENERATION:")
+for z in range(n_scene):
+	(names,classes)=random_set(obj_names,max=max_obj,classes=class_names,dif_obj=sim_or_dif)
+	print((names,classes))
+	positions=generate_random_scene(names,str(z+init),saving_images=True,class_names=classes,scene_type=scene_types[t_scene])
 
