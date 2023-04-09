@@ -11,8 +11,10 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 from math import sqrt
 import copy
+import random
 
 from sklearn.cluster import *
 from sklearn.preprocessing import StandardScaler
@@ -96,6 +98,8 @@ def data_aquisition(detection=False,saving=True,showing=False,frame_numbers=[4])
 		ret, bgr_frame, depth_frame = cam.get_frame_stream()
 		
 		#if there is a depth and color frame
+		cam.saveframe("depth/"+fn,depth_frame)
+		
 		if ret:
 			if saving:
 				cam.saveframe("color/"+fn,bgr_frame)
@@ -112,7 +116,7 @@ def data_aquisition(detection=False,saving=True,showing=False,frame_numbers=[4])
 		if showing:
 			cv2.imshow("depth frame", depth_frame)
 			cv2.imshow("bgr frame", bgr_frame)
-			
+		
 		# Quit the loop if we press escape key on keyboard
 		key = cv2.waitKey(500)
 		if key == 27:
@@ -203,7 +207,7 @@ def ransac_plane_segmentation(pcd):
 
 
 
-def dbscan_clustering(pcd,weights=[(2,2,2),(1,1,1)],scaling=None,showing=False):
+def dbscan_clustering(pcd,weights=[(2,2,2),(1,1,1)],scaling=None,showing=False,segmentation_color=False):
 	print("\tDBSCAN clustering...")
 	
 	#initialization
@@ -249,6 +253,9 @@ def dbscan_clustering(pcd,weights=[(2,2,2),(1,1,1)],scaling=None,showing=False):
 	max_label = labels.max()
 	print(f"\t\tpoint cloud has {max_label + 1} clusters")
 	pcds=[];num_of_objects=max_label+1
+	if segmentation_color:
+		colors = plt.get_cmap("tab20")(labels)
+		pcd.colors = o3d.utility.Vector3dVector(colors[:, :3])
 	for a in range(num_of_objects):
 		out_pc = o3d.geometry.PointCloud()
 		out_pc.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[labels == a])
@@ -263,7 +270,372 @@ def dbscan_clustering(pcd,weights=[(2,2,2),(1,1,1)],scaling=None,showing=False):
 	
 	return num_of_objects
 
-def o3d_segmentation(frame_number=4):
+def pointcloud2image_throughmesh(name,img_width,img_height):
+	model=name+".ply"
+	pcd = o3d.io.read_point_cloud(model)
+	c=np.mean(np.asarray([pcd.points]),axis=1)
+	
+	#2. transform into mesh (to have surface)
+	ms = pymeshlab.MeshSet()
+	ms.load_new_mesh(model)
+	ms.generate_surface_reconstruction_ball_pivoting()
+	ms.save_current_mesh(model)
+
+	#3. define projection (WHITE background, image size,...)
+	pcd = o3d.io.read_triangle_mesh(model)
+	mat = o3d.visualization.rendering.MaterialRecord()
+	mat.shader = 'defaultUnlit'
+	renderer_pc = o3d.visualization.rendering.OffscreenRenderer(img_width, img_height)
+	renderer_pc.scene.set_background(np.array([255, 255, 255, 1]))
+	renderer_pc.scene.add_geometry("pcd", pcd, mat)
+
+	#4. Optionally set the camera field of view (to zoom in a bit)
+	vertical_field_of_view = 15.0  # between 5 and 90 degrees
+	aspect_ratio = img_width / img_height  # azimuth over elevation
+	near_plane = 0.1
+	far_plane = 50.0
+	fov_type = o3d.visualization.rendering.Camera.FovType.Vertical
+	renderer_pc.scene.camera.set_projection(vertical_field_of_view, aspect_ratio, near_plane, far_plane, fov_type)
+
+	#5. Define camera and object poses
+	center =c[0]# [0, 0, 0]  # look_at target
+	eye = [0,0,0.5]#[0, -0.2, 1]  # camera position
+	up = [0, 1, 0]  # camera orientation
+	renderer_pc.scene.camera.look_at(center, eye, up)
+
+	#6. Compute image
+	color_image = np.asarray(renderer_pc.render_to_image())
+	plt.imsave(name+'.jpg', color_image)
+	return
+
+
+
+
+
+def pointcloud2image_throughcalcul(name,img_width,img_height):
+	model=name+".ply"
+	pcd = o3d.io.read_point_cloud(model)
+	
+	x_array=np.asarray(pcd.points)[:,0]
+	y_array=np.asarray(pcd.points)[:,1]
+	z_array=np.asarray(pcd.points)[:,2]
+	arg_max_y=np.argmax(y_array)
+	arg_min_y=np.argmin(y_array)
+	arg_max_x=np.argmax(x_array)
+	arg_min_x=np.argmin(x_array)
+	pcd_top=np.asarray(pcd.points)[arg_max_y]
+	pcd_bot=np.asarray(pcd.points)[arg_min_y]
+	pcd_left=np.asarray(pcd.points)[arg_min_x]
+	pcd_right=np.asarray(pcd.points)[arg_max_x]
+	print("PCD\ttop:{}, bot:{}, left:{}, right:{}".format(pcd_top,pcd_bot,pcd_left,pcd_right))
+	
+	h_scale=(img_width)/(pcd_right[0]-pcd_left[0])
+	v_scale=(img_height)/(pcd_top[1]-pcd_bot[1])
+	pix_disp=[0,0]
+	if h_scale>=v_scale:
+		print("vertical limiting")
+		pix_disp[0]=int((h_scale-v_scale)*(pcd_right[0]-pcd_left[0])/2)
+		h_scale=v_scale
+	else:
+		print("horizontal limiting")
+		pix_disp[1]=int((v_scale-h_scale)*(pcd_top[1]-pcd_bot[1])/2)
+		v_scale=h_scale
+
+	points=np.asarray(pcd.points)
+	colors=np.asarray(pcd.colors)
+	image=np.full((img_height,img_width,3), 255)
+	
+	pix_size=int(h_scale/2000)
+	print("pix size {}".format(pix_size))
+
+	for i in range(len(points)): 
+		p=points[i]
+		x=p[0]
+		y=p[1]
+		z=p[2]
+		
+		px=pix_disp[0]+int(h_scale*(x-pcd_left[0]))
+		py=pix_disp[1]+int(v_scale*(pcd_top[1]-y))
+		
+		if px<0+pix_size:
+			px=0+pix_size
+		elif px>=1280-pix_size:
+			px=1279-pix_size
+		if py<0+pix_size:
+			py=0+pix_size
+		elif py>=720-pix_size:
+			py=719-pix_size
+		
+		col=colors[i]*255
+		
+		nl= 1+2*pix_size#1->3+0 |2->3+2 |3->5+2
+		for i in range(0,nl):
+			for j in range(0,nl):
+				image[py+i-pix_size,px+j-pix_size]=col
+	cv2.imwrite(name+'.jpg',image)
+	im=cv2.imread(name+'.jpg')
+	im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+	cv2.imwrite(name+'.jpg',im)
+	return
+
+def maskrcnn(pcd,showing=False,saving_masks=False):
+	print("\tMASK-RCNN segmentation...")	
+	o3d.io.write_point_cloud("data/treatment/step1_Segmentation/total.ply", pcd, write_ascii=False, compressed=False, print_progress=True)
+	#################################################################################
+	### PARAMETERS
+	img_width, img_height = (1280, 720)
+	model_name_i="mask_rcnn_cubecyl2.h5"
+	showing=True
+	saving_masks=False
+
+
+	#################################################################################
+	### A) GET COLOR IMAGE from pointcloud (without background)
+
+	#1. read pointcloud (without background)
+	name="data/treatment/step1_Segmentation/total"
+	
+	#method1:
+	#pointcloud2image_throughmesh(name,img_width,img_height)
+	#method2:
+	pointcloud2image_throughcalcul(name,img_width,img_height)
+
+	#################################################################################
+	### B) MASK-RCNN SEGMENTATION
+
+	#1. Root directory of the project
+	ROOT_DIR = os.path.abspath("")
+	MODEL_DIR = os.path.join(ROOT_DIR, "")
+
+	#2. Import and Define Mask RCNN
+	sys.path.append(ROOT_DIR)  # To find local version of the library
+	from mrcnn.config import Config
+	from mrcnn import utils
+	import mrcnn.model as modellib
+	from mrcnn import visualize
+	from mrcnn.model import log
+
+	class ShapesConfig(Config):
+	    NAME = "shapes"
+	    GPU_COUNT = 1
+	    IMAGES_PER_GPU = 8
+	    NUM_CLASSES = 1 + 2  # background + 1 shape (cube)
+	    IMAGE_MIN_DIM = 180#360#148#720#148#72#72#128
+	    IMAGE_MAX_DIM = 320#640#1280#256#1280#256#128#128#128
+	    RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)  # anchor side in pixels
+	    TRAIN_ROIS_PER_IMAGE = 32
+	    STEPS_PER_EPOCH = 100
+	    VALIDATION_STEPS = 5
+
+	class InferenceConfig(ShapesConfig):
+	    GPU_COUNT = 1
+	    IMAGES_PER_GPU = 1
+	    DETECTION_MIN_CONFIDENCE = 0.85
+
+	inference_config = InferenceConfig()
+
+	model = modellib.MaskRCNN(mode="inference", 
+		                  config=inference_config,
+		                  model_dir=MODEL_DIR)
+
+	model.load_weights(filepath=model_name_i, 
+		           by_name=True)
+
+	#3. Apply mask-rcnn segmentation
+	image = cv2.imread(name+".jpg");image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+	r = model.detect([image], verbose=1)
+	r = r[0];mask=r['masks'];n_masks=len(mask[0][0])
+
+	#3+. Optionnaly save masks
+	if saving_masks:
+		for z in range(n_masks):
+		    	mask_i= mask[:, : ,[z]]
+		    	mask_i=np.squeeze(mask_i)
+		    	mask_i = mask_i.astype(np.int32)
+		    	for a in range(len(mask_i)):
+		    		for b in range(len(mask_i[0])):
+		    			if mask_i[a][b]:
+		    				mask_i[a][b]=0
+		    			else:
+		    				mask_i[a][b]=255
+		    	cv2.imwrite('data/treatment/step1_Segmentation/mask/'+str(z)+'.jpg',mask_i) 	
+
+	#################################################################################
+	### C) SEPARATE OBJECT POINTCLOUD
+
+	#1. Redefine label to adapt to pointcloud
+	imagetot=np.zeros((img_height,img_width))
+	model=name+".ply"
+	pcd = o3d.io.read_point_cloud(model)
+
+	points=np.asarray(pcd.points)
+	colors=np.asarray(pcd.colors)
+	vertex=np.asarray(pcd.normals)
+	labels=np.ndarray([])
+	
+	#####
+	err=50
+	im_top=[0,0];
+	for i in range(len(image)):
+		line=image[i,:]
+		for j in range(len(line)):
+			pix=image[i,j].tolist()
+			if (pix[0]+pix[1]+pix[2])<(3*255)-err:
+				im_top=[i,j]
+				#break
+		if im_top!=[0,0]:
+			break
+	image_flipvertically = cv2.flip(image, 0)
+	im_bot=[0,0];
+	for i in range(len(image_flipvertically)):
+		line=image_flipvertically[i,:]
+		for j in range(len(line)):
+			pix=image_flipvertically[i,j].tolist()
+			if (pix[0]+pix[1]+pix[2])<(3*255)-err:
+				im_bot=[719-i,j]
+				break
+		if im_bot!=[0,0]:
+			break		
+	im_left=[0,0];
+	for j in range(len(image[0])):
+		column=image[:,j]
+		for i in range(len(column)):
+			pix=image[i,j].tolist()
+			if (pix[0]+pix[1]+pix[2])<(3*255)-err:
+				im_left=[i,j]
+				#break
+		if im_left!=[0,0]:
+			break
+	im_right=[0,0];
+	image_fliphorizontally = cv2.flip(image, 1)
+	for j in range(len(image_fliphorizontally[0])):
+		column=image_fliphorizontally[:,j]
+		for i in range(len(column)):
+			pix=image_fliphorizontally[i,j].tolist()
+			if (pix[0]+pix[1]+pix[2])<(3*255)-err:
+				im_right=[i,1279-j]
+				#break
+		if im_right!=[0,0]:
+			break	
+
+	"""#SHOW CROSS
+	for elem in [im_top,im_bot,im_left,im_right]:
+		for a in range(20):
+			image[elem[0]+a,elem[1]]=[0,0,0]
+			image[elem[0]-a,elem[1]]=[0,0,0]
+			image[elem[0],elem[1]+a]=[0,0,0]
+			image[elem[0],elem[1]-a]=[0,0,0]
+	cv2.imwrite("cross.jpg",image)"""	
+		
+	x_array=np.asarray(pcd.points)[:,0]
+	y_array=np.asarray(pcd.points)[:,1]
+	z_array=np.asarray(pcd.points)[:,2]
+
+	arg_max_y=np.argmax(y_array)
+	arg_min_y=np.argmin(y_array)
+	arg_max_x=np.argmax(x_array)
+	arg_min_x=np.argmin(x_array)
+
+	pcd_top=np.asarray(pcd.points)[arg_max_y]
+	pcd_bot=np.asarray(pcd.points)[arg_min_y]
+	pcd_left=np.asarray(pcd.points)[arg_min_x]
+	pcd_right=np.asarray(pcd.points)[arg_max_x]
+	
+	#print("IMAGE\ttop:{}, bot:{}, left:{}, right:{}".format(im_top,im_bot,im_left,im_right))
+	#print("PCD\ttop:{}, bot:{}, left:{}, right:{}".format(pcd_top,pcd_bot,pcd_left,pcd_right))
+	h_scale=(im_right[1]-im_left[1])/(pcd_right[0]-pcd_left[0])
+	v_scale=(im_bot[0]-im_top[0])/(pcd_top[1]-pcd_bot[1])
+	imagetot=np.zeros((720,1280))
+	points=np.asarray(pcd.points)
+	for i in range(len(points)): 
+		p=points[i]
+		x=p[0]
+		y=p[1]
+		z=p[2]
+		
+		px=im_left[1] + int(h_scale*(x-pcd_left[0]))
+		py=im_top[0] +  int(v_scale*(pcd_top[1]-y))
+
+		if px<0:
+			px=0
+		elif px>=1280:
+			px=1279
+		if py<0:
+			py=0
+		elif py>=720:
+			py=719
+		#print("{} became {}".format([x,y],[px,py]))
+		
+		imagetot[py,px]=255
+		for z in range(n_masks):
+			if mask[py, px,z]:
+				labels=np.append(labels,z+1)
+				break
+			if z==n_masks-1:
+				labels=np.append(labels,0)
+	####
+	"""
+	pmax=np.max(np.asarray([pcd.points]),axis=1)[0]
+	pmin=np.min(np.asarray([pcd.points]),axis=1)[0]
+	#print("max: {}\n min: {}\n".format(pmax,pmin))
+	
+	for i in range(len(points)): 
+		p=points[i]
+		x=p[0]#-c[0]
+		y=p[1]#-c[1]
+		z=p[2]#-c[2]
+		px=int(img_width*(x-pmin[0])/(pmax[0]-pmin[0]))-95
+		py=int(2*img_height*(y-pmin[1])/(pmax[1]-pmin[1]))-665
+		if px<0:
+			px=0
+		elif px>=img_width:
+			px=img_width-1
+		if py<0:
+			py=0
+		elif py>=img_height:
+			py=img_height-1
+		py=img_height-1-py
+		imagetot[py,px]=255
+		#print("{} became {}".format([x,y],[px,py]))
+		
+		for z in range(n_masks):
+			if mask[py, px,z]:
+				labels=np.append(labels,z+1)
+				break
+			if z==n_masks-1:
+				labels=np.append(labels,0)
+	"""
+	cv2.imwrite(name+'_labelverif.jpg',imagetot)
+	labels=labels[1:]
+
+	#2. Separate objects in pointcloud based on label
+	max_label = n_masks
+	for v in range(1,max_label+1):
+		out_pcd = o3d.geometry.PointCloud()
+		out_pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[labels == v])
+		out_pcd.colors = o3d.utility.Vector3dVector(np.asarray(pcd.colors)[labels == v])
+		out_pcd.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[labels == v])
+		o3d.io.write_point_cloud("data/treatment/step1_Segmentation/"+str(v-1)+".ply", out_pcd, write_ascii=False, compressed=False, print_progress=True)
+
+	#2+. Optionnaly display the segmentation
+	if showing:
+		pcds=[]
+		c=[[1, 0, 0]]
+		for z in range(n_masks):
+			c.append([0,random.randint(2,10)/10,random.randint(2,10)/10])
+		for v in range(max_label+1):
+			out_pcd = o3d.geometry.PointCloud()
+			out_pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[labels == v])
+			out_pcd.paint_uniform_color(c[v])
+			out_pcd.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[labels == v])
+			pcds.append(out_pcd)
+		o3d.visualization.draw_geometries(pcds)
+	
+	return n_masks
+
+
+
+def o3d_segmentation(frame_number=4,seg_type="dbscan"):
 	print("Segmentation...")
 	
 	#1. open pointcloud
@@ -277,10 +649,24 @@ def o3d_segmentation(frame_number=4):
 	pcd=background_removal(pcd,threshold,showing=True)
 	
 	#4. remove the board and outliers
-	pcd=remove_board_outliers(pcd)
+	if seg_type=="dbscan":
+		pcd=remove_board_outliers(pcd)
+	elif seg_type=="maskrcnn":
+		#cl, ind = pcd.remove_radius_outlier(nb_points=500,radius=0.01) #600
+		cl, ind =pcd.remove_statistical_outlier(nb_neighbors=500,std_ratio=0.01)
+		pcd = pcd.select_by_index(ind)
+		o3d.visualization.draw_geometries([pcd])
+
 	
 	#5. DBSCAN clustering
-	num_of_objects=dbscan_clustering(pcd,showing=True)
+	if seg_type=="dbscan":
+		num_of_objects=dbscan_clustering(pcd,showing=True)
+	elif seg_type=="maskrcnn":
+		num_of_objects=maskrcnn(pcd,showing=True,saving_masks=False)
+	else:
+		print("Invalid input seg_type={}. It should be 'dbscan' or 'maskrcnn'".format(seg_type))
+	
+	print("{} objects have been detected on the scene".format(num_of_objects))
 	
 	return num_of_objects,threshold
 
@@ -679,7 +1065,7 @@ def modelfree_detection_and_simulation():
 	data_aquisition()
 	
 	#2. pointcloud segmentation
-	num_of_objects,threshold=o3d_segmentation()
+	num_of_objects,threshold=o3d_segmentation(seg_type="maskrcnn")#maskrcnn
 	
 	#3. shape completion by extrusion to the tabletop plane
 	poses=shape_completion(num_of_objects,threshold)
