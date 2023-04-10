@@ -23,6 +23,7 @@ from framechange import *
 
 import pybullet as p
 import pybullet_data
+import pybullet_utils.bullet_client as bc
 
 ############################################################################
 ######################## DATA ACQUISITION (.bag to .ply/.png)
@@ -164,6 +165,14 @@ def remove_board_outliers(pcd):
 	pcd = pcd.select_by_index(ind)
 	
 	print("\t\tstep 4/4")
+	return pcd
+
+def remove_outliers(pcd):
+	print("\tOutliers removal...")
+	#cl, ind = pcd.remove_radius_outlier(nb_points=500,radius=0.01) #600
+	cl, ind =pcd.remove_statistical_outlier(nb_neighbors=500,std_ratio=0.01)
+	pcd = pcd.select_by_index(ind)
+	o3d.visualization.draw_geometries([pcd])
 	return pcd
 
 
@@ -327,26 +336,22 @@ def pointcloud2image_throughcalcul(name,img_width,img_height):
 	pcd_bot=np.asarray(pcd.points)[arg_min_y]
 	pcd_left=np.asarray(pcd.points)[arg_min_x]
 	pcd_right=np.asarray(pcd.points)[arg_max_x]
-	print("PCD\ttop:{}, bot:{}, left:{}, right:{}".format(pcd_top,pcd_bot,pcd_left,pcd_right))
 	
 	h_scale=(img_width)/(pcd_right[0]-pcd_left[0])
 	v_scale=(img_height)/(pcd_top[1]-pcd_bot[1])
 	pix_disp=[0,0]
 	if h_scale>=v_scale:
-		print("vertical limiting")
 		pix_disp[0]=int((h_scale-v_scale)*(pcd_right[0]-pcd_left[0])/2)
 		h_scale=v_scale
 	else:
-		print("horizontal limiting")
 		pix_disp[1]=int((v_scale-h_scale)*(pcd_top[1]-pcd_bot[1])/2)
 		v_scale=h_scale
 
 	points=np.asarray(pcd.points)
 	colors=np.asarray(pcd.colors)
 	image=np.full((img_height,img_width,3), 255)
-	
 	pix_size=int(h_scale/2000)
-	print("pix size {}".format(pix_size))
+	#print("\t\t\tpix size {}".format(pix_size))
 
 	for i in range(len(points)): 
 		p=points[i]
@@ -391,18 +396,19 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 
 	#################################################################################
 	### A) GET COLOR IMAGE from pointcloud (without background)
-
+	print("\t\t Extract local rgb image...")
 	#1. read pointcloud (without background)
 	name="data/treatment/step1_Segmentation/total"
 	
 	#method1:
 	#pointcloud2image_throughmesh(name,img_width,img_height)
+	
 	#method2:
 	pointcloud2image_throughcalcul(name,img_width,img_height)
 
 	#################################################################################
 	### B) MASK-RCNN SEGMENTATION
-
+	print("\t\t Apply mask-rcnn mask...")
 	#1. Root directory of the project
 	ROOT_DIR = os.path.abspath("")
 	MODEL_DIR = os.path.join(ROOT_DIR, "")
@@ -430,7 +436,7 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 	class InferenceConfig(ShapesConfig):
 	    GPU_COUNT = 1
 	    IMAGES_PER_GPU = 1
-	    DETECTION_MIN_CONFIDENCE = 0.85
+	    DETECTION_MIN_CONFIDENCE = 0.75#0.85
 
 	inference_config = InferenceConfig()
 
@@ -459,10 +465,10 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 		    			else:
 		    				mask_i[a][b]=255
 		    	cv2.imwrite('data/treatment/step1_Segmentation/mask/'+str(z)+'.jpg',mask_i) 	
-
+	print("\t\t\t->{} objects detected !".format(n_masks))
 	#################################################################################
 	### C) SEPARATE OBJECT POINTCLOUD
-
+	print("\t\t Save objects's pointcloud in separate files...")
 	#1. Redefine label to adapt to pointcloud
 	imagetot=np.zeros((img_height,img_width))
 	model=name+".ply"
@@ -472,8 +478,7 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 	colors=np.asarray(pcd.colors)
 	vertex=np.asarray(pcd.normals)
 	labels=np.ndarray([])
-	
-	#####
+
 	err=50
 	im_top=[0,0];
 	for i in range(len(image)):
@@ -541,8 +546,8 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 	pcd_left=np.asarray(pcd.points)[arg_min_x]
 	pcd_right=np.asarray(pcd.points)[arg_max_x]
 	
-	#print("IMAGE\ttop:{}, bot:{}, left:{}, right:{}".format(im_top,im_bot,im_left,im_right))
-	#print("PCD\ttop:{}, bot:{}, left:{}, right:{}".format(pcd_top,pcd_bot,pcd_left,pcd_right))
+	#print("\t\tIMAGE\ttop:{}, bot:{}, left:{}, right:{}".format(im_top,im_bot,im_left,im_right))
+	#print("\t\tPCD\ttop:{}, bot:{}, left:{}, right:{}".format(pcd_top,pcd_bot,pcd_left,pcd_right))
 	h_scale=(im_right[1]-im_left[1])/(pcd_right[0]-pcd_left[0])
 	v_scale=(im_bot[0]-im_top[0])/(pcd_top[1]-pcd_bot[1])
 	imagetot=np.zeros((720,1280))
@@ -573,38 +578,7 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 				break
 			if z==n_masks-1:
 				labels=np.append(labels,0)
-	####
-	"""
-	pmax=np.max(np.asarray([pcd.points]),axis=1)[0]
-	pmin=np.min(np.asarray([pcd.points]),axis=1)[0]
-	#print("max: {}\n min: {}\n".format(pmax,pmin))
 	
-	for i in range(len(points)): 
-		p=points[i]
-		x=p[0]#-c[0]
-		y=p[1]#-c[1]
-		z=p[2]#-c[2]
-		px=int(img_width*(x-pmin[0])/(pmax[0]-pmin[0]))-95
-		py=int(2*img_height*(y-pmin[1])/(pmax[1]-pmin[1]))-665
-		if px<0:
-			px=0
-		elif px>=img_width:
-			px=img_width-1
-		if py<0:
-			py=0
-		elif py>=img_height:
-			py=img_height-1
-		py=img_height-1-py
-		imagetot[py,px]=255
-		#print("{} became {}".format([x,y],[px,py]))
-		
-		for z in range(n_masks):
-			if mask[py, px,z]:
-				labels=np.append(labels,z+1)
-				break
-			if z==n_masks-1:
-				labels=np.append(labels,0)
-	"""
 	cv2.imwrite(name+'_labelverif.jpg',imagetot)
 	labels=labels[1:]
 
@@ -652,11 +626,7 @@ def o3d_segmentation(frame_number=4,seg_type="dbscan"):
 	if seg_type=="dbscan":
 		pcd=remove_board_outliers(pcd)
 	elif seg_type=="maskrcnn":
-		#cl, ind = pcd.remove_radius_outlier(nb_points=500,radius=0.01) #600
-		cl, ind =pcd.remove_statistical_outlier(nb_neighbors=500,std_ratio=0.01)
-		pcd = pcd.select_by_index(ind)
-		o3d.visualization.draw_geometries([pcd])
-
+		pcd=remove_outliers(pcd)
 	
 	#5. DBSCAN clustering
 	if seg_type=="dbscan":
@@ -923,10 +893,14 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 	
 	
 	### SIMULATION PARAMETERS:
-	cid= p.connect(p.GUI, options='--background_color_red=1.0 --background_color_green=1.0 --background_color_blue=1.0')
+	physics_client = bc.BulletClient(connection_mode=p.GUI, options='--background_color_red=1.0 --background_color_green=1.0 --background_color_blue=1.0')
+	#cid= p.connect(p.GUI, options='--background_color_red=1.0 --background_color_green=1.0 --background_color_blue=1.0')
+	
 	p.setAdditionalSearchPath(pybullet_data.getDataPath())
 	p.setPhysicsEngineParameter(numSolverIterations=10)
-	p.setTimeStep(1. / 120.)
+	#p.setTimeStep(1. / 120.)
+	physics_client.setTimeStep(0.001)
+	
 	logId = p.startStateLogging(p.STATE_LOGGING_PROFILE_TIMINGS, "visualShapeBench.json")
 	#useMaximalCoordinates is much faster then the default reduced coordinates (Featherstone)
 	p.loadURDF("plane_transparent.urdf", useMaximalCoordinates=True)#"plane100.urdf"
@@ -1004,11 +978,28 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 	
 	# START SIMULATION
 	p.stopStateLogging(logId)
-	p.setGravity(0, 0, -10)
+	p.setGravity(0, 0, -9.81)
 	p.setRealTimeSimulation(realtime)
 	time.sleep(1)
 	
+	### ADD PANDA ROBOT
+	#physics_client.resetSimulation()
+	body_name="panda"
+	file_name="/robot_model/panda.urdf"
+	base_position= np.array([0.0, -0.75, 0.0])
+	base_orientation=np.array([0.0, 0.0, 1.0,1])
+	joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10])
+	joint_forces=np.array([87.0, 87.0, 87.0, 87.0, 12.0, 120.0, 120.0, 170.0, 170.0])
+	angles_neutral=np.array([0.00, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79, 0.00, 0.00])
+	ee_link = 11
+	fingers_indices = np.array([9, 10])
 	
+	pandaId=p.loadURDF(file_name,basePosition=base_position,baseOrientation=base_orientation,useFixedBase=True)
+	
+	for joint, angle in zip(joint_indices, angles_neutral):
+		physics_client.resetJointState(pandaId, jointIndex=joint, targetValue=angle)
+		jointstate=physics_client.getJointState(pandaId, joint)[0]
+		print("joint {} should be at angle {} and is currently at {}".format(joint,angle,jointstate))
 	
 	# SAVE IMAGES
 	images = p.getCameraImage(width,
@@ -1046,10 +1037,15 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 	
 	#DISPLAY POSITIONS & IMAGES
 	while (1):
+		physics_client.stepSimulation()
+		
 		for elem in objectIDs:
 			print("object ID {} is at pose :".format(elem)+ str(p.getBasePositionAndOrientation(elem)))
+		
+		for joint, angle in zip(joint_indices, angles_neutral):
+			physics_client.resetJointState(pandaId, jointIndex=joint, targetValue=angle)
 		#plt.show()
-		time.sleep(1)
+		#time.sleep(1)
 	return
 	
 
