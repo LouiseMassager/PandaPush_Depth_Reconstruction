@@ -73,6 +73,13 @@ topic update - use of realsense camera instead of ZED2
 2023/02/23 - [Synthetic data](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation) : extraction of label and depth+rgb information (.png) from Pybullet simulation during the generation of random scene with random cubes <br /> 
 
 2023/03/03 - [ML_training_PPDR.ipynb](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/ML_training/ML_training_PPDR.ipynb) : adaptation of the mask rcnn sample code to fit generated database : features in .png format and labels in .txt format <br /> 
+2023/03/21 - Training in colaboratory for detection of cubes and cylinders shapes based on depth or rgb images.
+2023/03/25 - Installation of tensorflow 2.5 on the Jetson kit pack and launch of the code for training data generation (alternative to Colaboratory)
+2023/04/7 - [Synthetic data](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation) : Adaptation of the synthetic database and scene generation to be more similar to experimental data (aligned cubes/cylinders in top view with random orientation)<br /> 
+
+2023/04/9 - [main.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/model_free_detection/main.py) : Generation of image (depth or rgb) from pointcloud (.ply to .png) for application of the mask-rcnn in the main code <br /> 
+
+2023/04/10 - [main.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/model_free_detection/main.py) : Addition of the controlled Panda robot in the PyBullet simulation <br /> 
 
 <br /> 
 
