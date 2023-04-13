@@ -25,13 +25,41 @@ import pybullet as p
 import pybullet_data
 import pybullet_utils.bullet_client as bc
 
+
+paths_default=["data/recordings/",
+		("data/data_aquisition/",["color/","depth/","ply/"]),
+		"data/treatment/step1_Segmentation/",
+		"data/treatment/step2_ShapeCompletion/",
+		"data/treatment/step3_Meshing/",
+		"data/treatment/step4_Simulation/",
+		("data/treatment/step5_Updatescene/",["Segmentation/","Shaping/"])]
+
+
+
+
+############################################################################
+######################## INITIALISATION
+############################################################################
+
+def initialize(folder_paths=paths_default,common_dir=""):
+	for folder_path in folder_paths:
+		if type(folder_path)==tuple:
+			initialize(folder_paths=folder_path[1],common_dir=folder_path[0])
+		elif type(common_dir+folder_path)==str:
+			if not os.path.exists(common_dir+folder_path):
+		    		os.makedirs(common_dir+folder_path)
+		else:
+			print("ERROR: invalid type of folder path : '{}'".format(folder_path))
+	return
+
+
 ############################################################################
 ######################## DATA ACQUISITION (.bag to .ply/.png)
 ############################################################################
 
-def choose_datasource(): #PLAYBACK (.bag) OR REAL TIME STREAM
+def choose_datasource(path_source): #PLAYBACK (.bag) OR REAL TIME STREAM
 	try:
-		source = "data/recordings/"+str(sys.argv[1]) #ex: "outdoors.bag"
+		source = path_source+str(sys.argv[1]) #ex: "outdoors.bag"
 		print("use recording :'"+source+"'")
 	except:
 		source=None
@@ -73,14 +101,14 @@ def tensorflow_model_loading(): #DETECTION with tensorflow (! only rgb => 2D!)
 				cv2.rectangle(img, (int(x), int(y)), (int(right), int(bottom)), (125, 255, 51), thickness=2)
 	return
 
-def data_aquisition(detection=False,saving=True,showing=False,frame_numbers=[4]):
+def data_aquisition(detection=False,saving=True,showing=False,frame_numbers=[4],path_source=paths_default[0],path_target=paths_default[1][0]):
 	""" PARAMETERS:
 	detection=False 	#false if don't want to detect with tensorflow
 	saving = True		#false if don't want to save .png and .ply format of depth/rgb
 	showing = False	#false if don't want windows with depth and color stream to pop-up
 	"""
 	#1. choose source of data
-	source=choose_datasource()
+	source=choose_datasource(path_source=path_source)
 	
 	#2. load ML model
 	if detection:
@@ -88,7 +116,7 @@ def data_aquisition(detection=False,saving=True,showing=False,frame_numbers=[4])
 		tensorflow_model_loading()
 	
 	#3. define camera parameters
-	cam = RealsenseCamera(recording=source)
+	cam = RealsenseCamera(recording=source,path_target=path_target)
 	
 	#4. Create loop to read frames continously
 	i=0;imax=len(frame_numbers)
@@ -129,7 +157,7 @@ def data_aquisition(detection=False,saving=True,showing=False,frame_numbers=[4])
 ############################################################################
 ######################## SEGMENTATION (.ply)
 ############################################################################
-def remove_board_outliers(pcd):
+def remove_board_outliers(pcd,showing=False):
 	#ref: http://www.open3d.org/docs/latest/tutorial/Advanced/pointcloud_outlier_removal.html
 	#radius_outlier_removal removes points that have few neighbors in a given sphere around them
 	#statistical_outlier_removal removes points that are further away from their neighbors compared to the average for the point cloud.
@@ -148,31 +176,35 @@ def remove_board_outliers(pcd):
 		elif len(test.points)>initial*0.7: #remove MAX 20% of points
 			loop=False
 			pcd = test
-	
 	print("\t\tstep 1/4")
+	
 	initial=len(pcd.points)
 	cl, ind = pcd.remove_radius_outlier(nb_points=300,radius=0.01) #600
 	test = pcd.select_by_index(ind)
 	if len(test.points)>initial*0.9: #remove MAX 20% of points
 		pcd = test
-	
 	print("\t\tstep 2/4")
+	
 	cl, ind = pcd.remove_statistical_outlier(nb_neighbors=2000,std_ratio=0.001)
 	pcd = pcd.select_by_index(ind)
-	
 	print("\t\tstep 3/4")
+	
 	cl, ind = pcd.remove_radius_outlier(nb_points=200,radius=0.01) #600
 	pcd = pcd.select_by_index(ind)
-	
 	print("\t\tstep 4/4")
+	
+	if showing:
+		o3d.visualization.draw_geometries([pcd])	
+	
 	return pcd
 
-def remove_outliers(pcd):
+def remove_outliers(pcd,showing=False):
 	print("\tOutliers removal...")
 	#cl, ind = pcd.remove_radius_outlier(nb_points=500,radius=0.01) #600
 	cl, ind =pcd.remove_statistical_outlier(nb_neighbors=500,std_ratio=0.01)
 	pcd = pcd.select_by_index(ind)
-	o3d.visualization.draw_geometries([pcd])
+	if showing:
+		o3d.visualization.draw_geometries([pcd])
 	return pcd
 
 
@@ -216,11 +248,11 @@ def ransac_plane_segmentation(pcd):
 
 
 
-def dbscan_clustering(pcd,weights=[(2,2,2),(1,1,1)],scaling=None,showing=False,segmentation_color=False):
+def dbscan_clustering(pcd,path_target,weights=[(2,2,2),(1,1,1)],scaling=None,showing=False,segmentation_color=False):
 	print("\tDBSCAN clustering...")
 	
 	#initialization
-	o3d.io.write_point_cloud("data/treatment/step1_Segmentation/total.ply", pcd, write_ascii=False, compressed=False, print_progress=True)
+	o3d.io.write_point_cloud(target_path+"total.ply", pcd, write_ascii=False, compressed=False, print_progress=True)
 	points=np.asarray(pcd.points)
 	colors=np.asarray(pcd.colors)
 	vertex=np.asarray(pcd.normals)
@@ -271,7 +303,7 @@ def dbscan_clustering(pcd,weights=[(2,2,2),(1,1,1)],scaling=None,showing=False,s
 		out_pc.colors = o3d.utility.Vector3dVector(np.asarray(pcd.colors)[labels == a])
 		out_pc.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[labels == a])
 		pcds.append(out_pc)
-		o3d.io.write_point_cloud("data/treatment/step1_Segmentation/"+str(a)+".ply", out_pc, write_ascii=False, compressed=False, print_progress=True)
+		o3d.io.write_point_cloud(target_path+str(a)+".ply", out_pc, write_ascii=False, compressed=False, print_progress=True)
 	
 	if showing:	
 		o3d.visualization.draw_geometries(pcds)
@@ -383,9 +415,9 @@ def pointcloud2image_throughcalcul(name,img_width,img_height):
 	cv2.imwrite(name+'.jpg',im)
 	return
 
-def maskrcnn(pcd,showing=False,saving_masks=False):
-	print("\tMASK-RCNN segmentation...")	
-	o3d.io.write_point_cloud("data/treatment/step1_Segmentation/total.ply", pcd, write_ascii=False, compressed=False, print_progress=True)
+def maskrcnn(pcd,path_target,showing=False,saving_masks=False):
+	print("\tMASK-RCNN segmentation...")
+	
 	#################################################################################
 	### PARAMETERS
 	img_width, img_height = (1280, 720)
@@ -393,12 +425,15 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 	showing=True
 	saving_masks=False
 
-
 	#################################################################################
 	### A) GET COLOR IMAGE from pointcloud (without background)
 	print("\t\t Extract local rgb image...")
+	
 	#1. read pointcloud (without background)
-	name="data/treatment/step1_Segmentation/total"
+	name=path_target+"total"	
+	o3d.io.write_point_cloud(name+".ply", pcd, write_ascii=False, compressed=False, print_progress=True)
+	
+	#2. convert to local color image
 	
 	#method1:
 	#pointcloud2image_throughmesh(name,img_width,img_height)
@@ -426,8 +461,8 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 	    GPU_COUNT = 1
 	    IMAGES_PER_GPU = 8
 	    NUM_CLASSES = 1 + 2  # background + 1 shape (cube)
-	    IMAGE_MIN_DIM = 180#360#148#720#148#72#72#128
-	    IMAGE_MAX_DIM = 320#640#1280#256#1280#256#128#128#128
+	    IMAGE_MIN_DIM = 180
+	    IMAGE_MAX_DIM = 320
 	    RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)  # anchor side in pixels
 	    TRAIN_ROIS_PER_IMAGE = 32
 	    STEPS_PER_EPOCH = 100
@@ -464,7 +499,7 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 		    				mask_i[a][b]=0
 		    			else:
 		    				mask_i[a][b]=255
-		    	cv2.imwrite('data/treatment/step1_Segmentation/mask/'+str(z)+'.jpg',mask_i) 	
+		    	cv2.imwrite(path_target+'mask/'+str(z)+'.jpg',mask_i) 	
 	print("\t\t\t->{} objects detected !".format(n_masks))
 	#################################################################################
 	### C) SEPARATE OBJECT POINTCLOUD
@@ -589,7 +624,7 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 		out_pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[labels == v])
 		out_pcd.colors = o3d.utility.Vector3dVector(np.asarray(pcd.colors)[labels == v])
 		out_pcd.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[labels == v])
-		o3d.io.write_point_cloud("data/treatment/step1_Segmentation/"+str(v-1)+".ply", out_pcd, write_ascii=False, compressed=False, print_progress=True)
+		o3d.io.write_point_cloud(path_target+str(v-1)+".ply", out_pcd, write_ascii=False, compressed=False, print_progress=True)
 
 	#2+. Optionnaly display the segmentation
 	if showing:
@@ -609,30 +644,30 @@ def maskrcnn(pcd,showing=False,saving_masks=False):
 
 
 
-def o3d_segmentation(frame_number=4,seg_type="dbscan"):
+def o3d_segmentation(frame_number=4,seg_type="dbscan",path_source=paths_default[1][0],path_target=paths_default[2],showing=False):
 	print("Segmentation...")
 	
 	#1. open pointcloud
-	model="data/ply/"+str(frame_number)+".ply"
+	model=path_source+"ply/"+str(frame_number)+".ply"
 	pcd = o3d.io.read_point_cloud(model)
 	
 	#2. plane segmentation with RANSAC algorithm
 	pcd,threshold=ransac_plane_segmentation(pcd)
 	
 	#3. remove points beyond floor/wall
-	pcd=background_removal(pcd,threshold,showing=True)
+	pcd=background_removal(pcd,threshold,showing=showing)
 	
 	#4. remove the board and outliers
 	if seg_type=="dbscan":
-		pcd=remove_board_outliers(pcd)
+		pcd=remove_board_outliers(pcd,showing=showing)
 	elif seg_type=="maskrcnn":
-		pcd=remove_outliers(pcd)
+		pcd=remove_outliers(pcd,showing=showing)
 	
 	#5. DBSCAN clustering
 	if seg_type=="dbscan":
-		num_of_objects=dbscan_clustering(pcd,showing=True)
+		num_of_objects=dbscan_clustering(pcd,path_target=path_target,showing=showing)
 	elif seg_type=="maskrcnn":
-		num_of_objects=maskrcnn(pcd,showing=True,saving_masks=False)
+		num_of_objects=maskrcnn(pcd,path_target=path_target,showing=showing,saving_masks=False)
 	else:
 		print("Invalid input seg_type={}. It should be 'dbscan' or 'maskrcnn'".format(seg_type))
 	
@@ -661,12 +696,12 @@ def get_object_pose(pcd,threshold):
 	
 	return pose,height
 
-def edge_clustering(pcd,pose):
+def edge_clustering(pcd,pose,showing=False):
 	points=np.asarray(pcd.points)
 	colors=np.asarray(pcd.colors)
 	vertex=np.asarray(pcd.normals)
 
-	points= align_to_origin(points,center=pose[0],direction=pose[1])
+	#points= align_to_origin(points,center=pose[0],direction=pose[1])
 
 	sidenormals=[];labels=np.ndarray([])
 	for i in range(len(points)): 
@@ -711,15 +746,24 @@ def edge_clustering(pcd,pose):
 	labels=labels[1:]
 	side_normals=np.asarray(sidenormals)
 	max_label = 1
-	c=[[1, 0, 0],[0,1,0]] #0=red 1=green
+	
+	if showing:
+		c=[[1, 0, 0],[0,0,1]] #0=red 1=blue
+		pcds=[]
+		for v in range(max_label+1):
+			out_pcd = o3d.geometry.PointCloud()
+			out_pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[labels == v])
+			#out_pc.colors = o3d.utility.Vector3dVector(c[v])
+			out_pcd.paint_uniform_color(c[v])
+			out_pcd.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[labels == v])
+			pcds.append(out_pcd)
+		o3d.visualization.draw_geometries(pcds)
+	
 	pcds=[]
 	for v in range(max_label+1):
 		out_pcd = o3d.geometry.PointCloud()
-		#print(labels)
 		out_pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[labels == v])
-		#out_pc.colors = o3d.utility.Vector3dVector(c[v])
 		out_pcd.colors = o3d.utility.Vector3dVector(np.asarray(pcd.colors)[labels == v])
-		#out_pc.paint_uniform_color(c[v])
 		out_pcd.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[labels == v])
 		pcds.append(out_pcd)
 	print("\n\t{} outside points and {} inside points".format(len(pcds[1].points),len(pcds[0].points)))
@@ -776,60 +820,47 @@ def extrusion(pcd,pcds,sidenormals,height):
 	sides.normals = o3d.utility.Vector3dVector(side_vertex)	
 	return bottom, sides
 
-def save_total_pointcloud(num,top,bottom,edges,showing=False):
-	#o3d.visualization.draw_geometries([top,bottom,edges])
+def save_total_pointcloud(num,path_target,top,bottom,edges,showing=False):
 	final=top+bottom+edges
-	##final.estimate_normals()
-	#o3d.geometry.estimate_normals(final)
-	"""
-	points=np.concatenate((top.points, edges.points, bottom.points), axis=0)
-	colors=np.concatenate((top.colors, edges.colors, bottom.colors), axis=0)
-	vertex=np.concatenate((top.normals, edges.normals, bottom.normals), axis=0)
-	o3d.visualization.draw_geometries([top,bottom,edges])
-	final = o3d.geometry.PointCloud()
-	final.points = o3d.utility.Vector3dVector(points)
-	final.colors = o3d.utility.Vector3dVector(colors)
-	final.normals = o3d.utility.Vector3dVector(vertex)
-	"""
 	if showing:
 		o3d.visualization.draw_geometries([final])
-	o3d.io.write_point_cloud("data/treatment/step2_ShapeCompletion/"+str(num)+".ply", final, write_ascii=False, compressed=False, print_progress=True)
+	o3d.io.write_point_cloud(path_target+str(num)+".ply", final, write_ascii=False, compressed=False, print_progress=True)
 	return
 
-def shape_completion(num_of_objects,threshold):
+def shape_completion(num_of_objects,threshold,path_source=paths_default[2],path_target=paths_default[3],showing=True):
 	print("Shape completion...")
 	poses=[]
 	for num in range(num_of_objects):
-		#get pointcloud
-		model="data/treatment/step1_Segmentation/"+str(num)+".ply"
+		#1. get pointcloud
+		model=path_source+str(num)+".ply"
 		pcd = o3d.io.read_point_cloud(model)
-		pcd=pcd.voxel_down_sample(voxel_size=0.003)
-			
-		print(6*"\n")
-		print(len(np.asarray(pcd.points).tolist()))
-		print(len(np.asarray(pcd.normals).tolist()))
-		print(6*"\n")
 		
-		#get object pose
+		#2. get object pose
 		pose,height=get_object_pose(pcd,threshold)
 		poses.append(pose)
 		
-		#get object edges
-		pcds,sidenormals=edge_clustering(pcd,poses[num])
+		#3. align to object pose
+		points= np.asarray(pcd.points)
+		points= align_to_origin(points,center=pose[0],direction=pose[1])
+		pcd_ori=copy.deepcopy(pcd)
 		
-		#extrude object
+		# get object edges
+		pcd=pcd.voxel_down_sample(voxel_size=0.003)
+		pcds,sidenormals=edge_clustering(pcd,poses[num],showing=showing)
+		
+		#5. extrude object
 		bottom,edges=extrusion(pcd,pcds,sidenormals,height)
 		
-		#save final pointcloud
-		save_total_pointcloud(num,top=pcd,bottom=bottom,edges=edges,showing=False)
+		#6. save final pointcloud
+		save_total_pointcloud(num,path_target,top=pcd_ori,bottom=bottom,edges=edges,showing=False)
 	return poses
 
 	
 ############################################################################
 ######################## MESHING (.ply to .stl)
 ############################################################################
-def meshing_with_o3d(num):
-	model="data/treatment/step2_ShapeCompletion/"+str(num)+".ply"
+def meshing_with_o3d(num,path_source,path_target):
+	model=path_source+str(num)+".ply"
 	pcd = o3d.io.read_point_cloud(model)
 	pcd.estimate_normals()
 
@@ -845,13 +876,13 @@ def meshing_with_o3d(num):
 	#o3d.visualization.draw_geometries([mesh], mesh_show_back_face=True)
 
 	#http://www.open3d.org/docs/0.12.0/python_api/open3d.io.write_triangle_mesh.html
-	o3d.io.write_triangle_mesh("data/treatment/step3_Meshing/"+str(num)+".stl", mesh, write_ascii=False, compressed=False,write_vertex_normals=True, write_vertex_colors=True, print_progress=True)
+	o3d.io.write_triangle_mesh(path_target+str(num)+".stl", mesh, write_ascii=False, compressed=False,write_vertex_normals=True, write_vertex_colors=True, print_progress=True)
 	return
 
-def meshing_with_pymeshlab(num):
+def meshing_with_pymeshlab(num,path_source,path_target):
 	#ref: https://gist.github.com/shubhamwagh/0dc3b8173f662d39d4bf6f53d0f4d66b
 	ms = pymeshlab.MeshSet()
-	ms.load_new_mesh("data/treatment/step2_ShapeCompletion/"+str(num)+".ply")
+	ms.load_new_mesh(path_source+str(num)+".ply")
 	#ms.compute_normals_for_point_sets()
 	ms.surface_reconstruction_screened_poisson()
 	ms.compute_color_transfer_vertex_to_face()
@@ -869,27 +900,160 @@ def meshing_with_pymeshlab(num):
 	#ms.compute_color_transfer_face_to_vertex()
 	#ms.compute_color_transfer_mesh_to_face()
 	#ms.meshing_invert_face_orientation()
-	ms.save_current_mesh("data/treatment/step3_Meshing/"+str(num)+".obj")
+	ms.save_current_mesh(path_target+str(num)+".obj")
 	return
 
-def meshing(num_of_objects):
+def meshing(num_of_objects,path_source=paths_default[3],path_target=paths_default[4]):
 	print("Meshing...")
 	
 	for num in range(num_of_objects):
-		#meshing_with_o3d(num) #=>previous method but backface problem
-		meshing_with_pymeshlab(num)
+		#meshing_with_o3d(num,path_source,path_target) #=>previous method but backface problem
+		meshing_with_pymeshlab(num,path_source,path_target)
 	
 	print("\tDone")
 	return
 
 
 ############################################################################
+######################## Update scene
+############################################################################
+def preprocess_point_cloud(pcd, voxel_size):
+    print(":: Downsample with a voxel size %.3f." % voxel_size)
+    pcd_down = pcd.voxel_down_sample(voxel_size)
+
+    radius_normal = voxel_size * 2
+    print(":: Estimate normal with search radius %.3f." % radius_normal)
+    pcd_down.estimate_normals(
+        o3d.geometry.KDTreeSearchParamHybrid(radius=radius_normal, max_nn=30))
+
+    radius_feature = voxel_size * 5
+    print(":: Compute FPFH feature with search radius %.3f." % radius_feature)
+    pcd_fpfh = o3d.pipelines.registration.compute_fpfh_feature(
+        pcd_down,
+        o3d.geometry.KDTreeSearchParamHybrid(radius=radius_feature, max_nn=100))
+    return pcd_down, pcd_fpfh
+
+def execute_global_registration(source_down, target_down, source_fpfh,
+                                target_fpfh, voxel_size):
+    distance_threshold = voxel_size * 1.5
+    print(":: RANSAC registration on downsampled point clouds.")
+    print("   Since the downsampling voxel size is %.3f," % voxel_size)
+    print("   we use a liberal distance threshold %.3f." % distance_threshold)
+    result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+        source_down, target_down, source_fpfh, target_fpfh, True,
+        distance_threshold,
+        o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
+        3, [
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(
+                0.9),
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(
+                distance_threshold)
+        ], o3d.pipelines.registration.RANSACConvergenceCriteria(1000000, 0.9999))#(100000, 0.999)
+    return result
+
+def refine_registration(source, target, source_fpfh, target_fpfh, voxel_size):
+    distance_threshold = voxel_size * 0.4
+    print(":: Point-to-plane ICP registration is applied on original point")
+    print("   clouds to refine the alignment. This time we use a strict")
+    print("   distance threshold %.3f." % distance_threshold)
+    result = o3d.pipelines.registration.registration_icp(
+        source, target, distance_threshold, result_ransac.transformation,
+        o3d.pipelines.registration.TransformationEstimationPointToPlane())
+    return result
+
+
+
+def setinplace(poses,target_path=paths_default[2],source_path=paths_default[6][0]+paths_default[6][1][1],showing=False):
+	
+	sources_down=[]
+	transformations=[]
+	voxel_size=0.0005
+
+	target = o3d.io.read_point_cloud(target_path+"total.ply")
+	target_down, target_fpfh = preprocess_point_cloud(target, voxel_size)
+
+	inits=[]
+	for i in range(len(poses)):
+		inits.append(np.asarray([[1.0, 0.0, 0.0, poses[i][0][0]], [0.0, 1.0, 0.0,  poses[i][0][1]],
+		                     [0.0, 0.0, 1.0, poses[i][0][2]], [0.0, 0.0, 0.0, 1.0]]))
+
+	i=0
+	for source_name in os.listdir(source_path):
+		print(source_path+source_name)
+		source = o3d.io.read_point_cloud(source_path+source_name)
+		source_down, source_fpfh = preprocess_point_cloud(source, voxel_size)
+
+		#if showing:
+		#	o3d.visualization.draw_geometries([source_down,target_down]) 
+		source_down.transform(inits[i])
+		#if showing:
+		#	o3d.visualization.draw_geometries([source_down,target_down]) 
+		result_ransac = execute_global_registration(source_down, target_down,
+				                            source_fpfh, target_fpfh,
+				                            voxel_size)
+		source_down=source_down.transform(result_ransac.transformation)
+		
+		#if showing:
+		#	o3d.visualization.draw_geometries([source_down,target_down]) 
+		
+		transformations.append(result_ransac.transformation)
+		sources_down.append( copy.deepcopy(source_down))
+		i+=1
+
+	sources_down.append(target_down)
+	if showing:
+		o3d.visualization.draw_geometries(sources_down)
+	return transformations
+
+
+
+def update_scene(poses=None,threshold=None,frame_numbers=[4]):
+	#1. data aquisition from realsense camera
+	data_aquisition(frame_numbers=frame_numbers)
+	
+	for frame_number in frame_numbers:
+		#2. pointcloud segmentation
+		new_num_of_objects,new_threshold=o3d_segmentation(frame_number=frame_number,seg_type="maskrcnn",showing=False,path_target="data/treatment/step5_Updatescene/Segmentation/")#maskrcnn
+		
+		#3. shape completion by extrusion to the tabletop plane
+		new_poses=shape_completion(new_num_of_objects,new_threshold,showing=False,path_source="data/treatment/step5_Updatescene/Segmentation/",path_target="data/treatment/step5_Updatescene/Shaping/")
+		
+		#4. Place objects in current scene 
+		transformations=setinplace(new_poses,showing=True)
+	
+	return transformations
+
+
+############################################################################
 ######################## PyBullet Simulation
 ############################################################################
 
-def scene_pybullet_simulation(poses,threshold,realtime=0):
-	#realtime=0 for no physics simulation, else realtime=1
+def inverse_kinematics(body_idx, link: int, position: np.ndarray, orientation: np.ndarray=None) -> np.ndarray:
+        if orientation is None:
+            joint_state = p.calculateInverseKinematics(
+			body_idx,
+			link,
+			position,
+			maxNumIterations=500,
+			residualThreshold=.0001,
+			jointDamping=[1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10],
+		)
+        else:
+            joint_state = p.calculateInverseKinematics(
+			body_idx,
+			link,
+			position,
+			targetOrientation=orientation,
+			maxNumIterations=500,
+			residualThreshold=.0001,
+			jointDamping=[1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10,1e-10],
+		)
 	
+        return np.array(joint_state)
+
+
+def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treatment/step3_Meshing/",path_target="data/treatment/step4_Simulation/"):
+	#realtime=0 for no physics simulation, else realtime=1
 	
 	
 	### SIMULATION PARAMETERS:
@@ -937,12 +1101,11 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 	
 	
 	### OBJECTS SPAWNING:
-	path="data/treatment/step3_Meshing/"
 	camera_pose=np.asarray([0.0,0.0,threshold[3]])
 	models=[]
 	for num in range(len(poses)):
 		pos=camera_pose+np.asarray(poses[num][0].tolist())
-		models.extend([[path+str(num)+".obj",pos.tolist()]])
+		models.extend([[path_source+str(num)+".obj",pos.tolist()]])
 	
 	shift = [0, -0.02, 0]
 	meshScale = [1, 1, 1]
@@ -976,13 +1139,13 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 	
 	
 	
-	# START SIMULATION
+	### START SIMULATION
 	p.stopStateLogging(logId)
 	p.setGravity(0, 0, -9.81)
 	p.setRealTimeSimulation(realtime)
 	time.sleep(1)
 	
-	### ADD PANDA ROBOT
+	### INITIALIZE PANDA ROBOT
 	#physics_client.resetSimulation()
 	body_name="panda"
 	file_name="/robot_model/panda.urdf"
@@ -1001,14 +1164,15 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 		jointstate=physics_client.getJointState(pandaId, joint)[0]
 		print("joint {} should be at angle {} and is currently at {}".format(joint,angle,jointstate))
 	
-	# SAVE IMAGES
+	"""
+	### SAVE IMAGES
 	images = p.getCameraImage(width,
                           height,
                           view_matrix,
                           projection_matrix,
                           shadow=True,
                           renderer=p.ER_BULLET_HARDWARE_OPENGL)
-	# NOTE: the ordering of height and width change based on the conversion
+	# note: the ordering of height and width change based on the conversion
 	rgb_opengl = np.reshape(images[2], (height, width, 4)) * 1. / 255.
 	depth_buffer_opengl = np.reshape(images[3], [width, height])
 	depth_opengl = far * near / (far - (far - near) * depth_buffer_opengl)
@@ -1030,22 +1194,31 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 	plt.imshow(seg_opengl)
 	plt.title('Seg OpenGL3')
 
-	plt.imsave("data/treatment/step4_Simulation/depth.png", depth_opengl)
-	plt.imsave("data/treatment/step4_Simulation/seg.png", seg_opengl)
-	plt.imsave("data/treatment/step4_Simulation/rgb.png", rgb_opengl, cmap='gray', vmin=0, vmax=1)
+	plt.imsave(path_target+"depth.png", depth_opengl)
+	plt.imsave(path_target+"seg.png", seg_opengl)
+	plt.imsave(path_target+"rgb.png", rgb_opengl, cmap='gray', vmin=0, vmax=1)
+	"""
 	
 	
-	#DISPLAY POSITIONS & IMAGES
+	### UPDATE SIMULATION (incomplete currently)
+	#new_poses,new_threshold=update_scene(frame_numbers=[10])
+	
+	### RUN SIMULATION : panda control, object position display, image display
+	#ee_position=physics_client.getLinkState(pandaId, ee_link)[0] #get ee position
+	ee_target_position=np.asarray([0, 0, 0.2])
+	
 	while (1):
 		physics_client.stepSimulation()
 		
 		for elem in objectIDs:
 			print("object ID {} is at pose :".format(elem)+ str(p.getBasePositionAndOrientation(elem)))
 		
-		for joint, angle in zip(joint_indices, angles_neutral):
+		target_arm_angles=inverse_kinematics(body_idx=pandaId, link=ee_link, position=ee_target_position)[:7]
+		for joint, angle in zip(joint_indices, target_arm_angles):
 			physics_client.resetJointState(pandaId, jointIndex=joint, targetValue=angle)
-		#plt.show()
-		#time.sleep(1)
+		
+	p.disconnect()
+	
 	return
 	
 
@@ -1056,15 +1229,20 @@ def scene_pybullet_simulation(poses,threshold,realtime=0):
 ############################################################################
 ############################################################################
 
+
 def modelfree_detection_and_simulation():
+	
+	#0. create data folders if not present
+	initialize()
+	
 	#1. data aquisition from realsense camera
 	data_aquisition()
 	
 	#2. pointcloud segmentation
-	num_of_objects,threshold=o3d_segmentation(seg_type="maskrcnn")#maskrcnn
+	num_of_objects,threshold=o3d_segmentation(seg_type="maskrcnn",showing=False)#maskrcnn
 	
 	#3. shape completion by extrusion to the tabletop plane
-	poses=shape_completion(num_of_objects,threshold)
+	poses=shape_completion(num_of_objects,threshold,showing=False)
 	
 	#4. meshing
 	meshing(num_of_objects)
@@ -1074,7 +1252,6 @@ def modelfree_detection_and_simulation():
 	
 	return
 
+
 modelfree_detection_and_simulation()
-
-
 
