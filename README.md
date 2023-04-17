@@ -17,7 +17,7 @@ Potentially tested for the control of a Panda robot for non-prehensile manipulat
 - [ ] Segmentation (random-view)
 - [x] Meshing (3D models)
 - [x] PyBullet Simulation Initialition
-- [] CAD Probabilistic Update
+- [ ] CAD Probabilistic Update
 - [X] Scene update
 - [ ] Robustness improvement (object shapes, point of view, performance...)
 
