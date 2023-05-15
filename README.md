@@ -3,7 +3,7 @@
 Project on the detection of 3D objects with a realsense Depth camera based on a classifier (Machine Learning) trained with a 3D model of the object.
 This project has been realised for the aim of trajectory planning of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
 
-<img src="res/pointcloud.png" width=400><img src="res/simulation.png" width=400>
+<img src="res/pointcloud.png" width=450><img src="res/simulation.png" width=450>
 
 ## Deployment
 
