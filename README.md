@@ -3,21 +3,6 @@
 Project on the detection of 3D objects with a realsense Depth camera based on a classifier (Machine Learning) trained with a 3D model of the object.
 This project has been realised for the aim of trajectory planning of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
 
-<img src="res/plan4.png" width=1000>
-
-## Functionnalities
-
-:trophy: click [here](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/res) to see the current results :trophy:
-- [x] Synthetic database generation
-- [x] Mask-rcnn training
-- [x] Data acquisition (recording, colored ply, RGB-D png)
-- [x] Segmentation (top-view)
-- [ ] Segmentation (random-view)
-- [x] Meshing (3D models)
-- [x] PyBullet Simulation Initialition
-- [ ] CAD Probabilistic Update
-- [X] Scene update
-- [ ] Robustness improvement (object shapes, point of view, performance...)
 
 ## Deployment
 
@@ -35,13 +20,30 @@ python3 main.py filename.bag
 
 ## Methodology
 
-:video_camera: [Data Aquisition](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/Realsense/code) - aquire and save RGBD data (.ply and .png) from the camera
+<img src="res/plan4.png" width=1000>
 
-:abacus: [Treatment](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/Treatment) - isolate objects, aquire their pose and convert them to mesh (.stl)
+:video_camera: **Data Aquisition** - aquire and save RGBD data (.ply and .png) from the camera
 
-:desktop_computer: [Simulation](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/Simulation) - implement them in a Pybullet simulation
+:abacus: **Treatment** - isolate objects, aquire their pose and convert them to mesh (.stl)
 
-:mechanical_arm: Testing (to do) - implementation with the mechanical arm
+:desktop_computer: **Simulation** - implement them in a Pybullet simulation
+
+:mechanical_arm: **Robot Control** - implementation with the mechanical arm
+
+## Functionnalities
+
+:trophy: click [here](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/res) to see the current results :trophy:
+- [x] Synthetic database generation
+- [x] Mask-rcnn training
+- [x] Data acquisition (recording, colored ply, RGB-D png)
+- [x] Segmentation (top-view)
+- [ ] Segmentation (random-view)
+- [x] Meshing (3D models)
+- [x] PyBullet Simulation Initialition
+- [ ] CAD Probabilistic Update
+- [X] Scene update
+- [ ] Robustness improvement (object shapes, point of view, performance...)
+
 
 ## Updates
 2022/11/20 - [meshconverter.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/Simulation/meshconverter.py) : mesh convertisser from 3D model (.stl) to point cloud (.ply) and vis versa <br />
@@ -110,12 +112,6 @@ topic update - use of realsense camera instead of ZED2
 - (ffmpeg : for recording)
 
 <br /> <br /> <br />
-## Resources
-#### For this project
+## External Resources
 - [Colaboratory](https://colab.research.google.com/?utm_source=scs-index) : for working environment (provide online GPU)
 - [Mask rcnn for tensorflow 2.x](https://github.com/alsombra/Mask_RCNN-TF2) : for instance segmentation using supervised learning
-
-#### For general knowledge
-- [Yolo](https://pjreddie.com/darknet/yolo/) : Real-Time Object Detection (for common knowledge)
-- [Mediapipe](https://google.github.io/mediapipe/solutions/objectron) OR [Deep_Object_Pose](https://github.com/NVlabs/Deep_Object_Pose) : for detection of object based on 3D model (with ML training) <br />
-[Mediapipecodeexample](https://www.youtube.com/watch?v=f-Ibri14KMY&ab_channel=NicolaiNielsen-ComputerVision%26AI)
