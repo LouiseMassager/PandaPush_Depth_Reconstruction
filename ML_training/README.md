@@ -8,4 +8,4 @@ steps for use on host computer:
 steps for use on colaboratory:
 
 1. download on your drive : mrcnn.zip and images.zip
-2. launch training_tf2d5_v1.ipynb on colaboratory (for better performant training, select "Hardware accelerator: GPU" so as to access cuda and nvidia) 
+2. launch training_colaboratory.ipynb on colaboratory (for better performant training, select "Hardware accelerator: GPU" so as to access cuda and nvidia) 
