@@ -1,7 +1,7 @@
 # PandaPush_Depth_Reconstruction :video_camera: :game_die: :mechanical_arm: :robot:
 
 Project on the detection of 3D objects with a realsense Depth camera based on a classifier (Machine Learning) trained with a 3D model of the object.
-This project has been realised for the aim of trajectory planning of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
+This project has been realised for the aim of trajectory planning of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects. This project was applied to detect **unicolored cuboids and cylinders** but was programmed in order to be easily adapted to any types of objects (through a new [synthetic database generation](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation) and [re-training](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/ML_training)). The [main program](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection) must not be adapted to be used on other types of objects.
 
 <img src="res/pointcloud.png" width=400><img src="res/simulationPyBullet.png" width=400>
 
