@@ -24,7 +24,7 @@ python3 main.py filename.bag
 <img src="res/plan4.png" width=1000>
 
 ### Pre-design steps
-<sub> In order to adapt the project to detect other objects or improve performances, the segmentation model can be modified through changes in the synthetic database and training. Otherwise, if the project want to be used as it is, those files are not needed as the model as already be trained and integrated in the [main program](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection). </sub>
+<sub> In order to adapt the project to detect other objects or improve performances, the segmentation model can be modified through changes in the synthetic database and training. Otherwise, if the project want to be used as it is, those files are not needed as the model as already be trained and integrated in the main program (on run-time steps). </sub>
 
 :file_cabinet: [**Synthetic Database Generation**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation) - generation of random cuboids/cylinders and generation of random scenes in PyBullet
 
