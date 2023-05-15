@@ -52,6 +52,9 @@ python3 main.py filename.bag
 - [x] PyBullet Simulation Initialition
 - [ ] CAD Probabilistic Update (Gaussian Processes)
 - [X] Scene update
+- [X] Robot Control in the simulation
+- [ ] Trajectory planning
+- [ ] Physicial Robot Control
 
 
 ## Results
