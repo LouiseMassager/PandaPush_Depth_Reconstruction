@@ -8,7 +8,7 @@ This project was applied to detect ***unicolored cuboids and cylinders*** but wa
 
 ## Deployment
 
-To record livestream:
+To record a livestream:
 ```bash
 cd model_free_detection
 python3 main.py
