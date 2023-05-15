@@ -21,7 +21,7 @@ python3 main.py filename.bag
 
 ## Methodology
 
-<img src="res/plan4.png" width=1000>
+<img src="res/plan4.png" width=800>
 
 ### Pre-design steps
 <sub> In order to adapt the project to detect other objects or improve performances, the segmentation model can be modified through changes in the synthetic database and training. Otherwise, if the project want to be used as it is, those files are not needed as the model as already be trained and integrated in the main program (on run-time steps). </sub>
@@ -58,11 +58,11 @@ python3 main.py filename.bag
 ## Results
 
 ### Pre-design (Synthetic Database and Neural Network Training)
-<img src="res/training_res.png" width=1000>
+<img src="res/training_res.png" width=800>
 
 ### Experimental Data
-<img src="res/experimental_res.png" width=1000>
-<img src="res/experimental_res2.png" width=1000>
+<img src="res/experimental_res.png" width=800>
+<img src="res/experimental_res2.png" width=800>
 
 
 ## Updates
