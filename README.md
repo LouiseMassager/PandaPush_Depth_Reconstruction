@@ -22,13 +22,20 @@ python3 main.py filename.bag
 
 <img src="res/plan4.png" width=1000>
 
+### Pre-design steps
+:file_cabinet: [**Synthetic Database Generation**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation) - generation of random cuboids/cylinders and generation of random scenes in PyBullet
+
+:seedling: [**Neural Network Training**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/ML_training) - training of the neural network with the synthetic database generated
+
+### [On Run-time steps](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection)
+
 :video_camera: **Data Aquisition** - aquire and save RGBD data (.ply and .png) from the camera
 
-:abacus: **Treatment** - isolate objects, aquire their pose and convert them to mesh (.stl)
+:abacus: **Treatment** - isolate objects from background, segment them, aquire their pose and convert them from point-clouds (.ply) to meshes (.stl)
 
-:desktop_computer: **Simulation** - implement them in a Pybullet simulation
+:desktop_computer: **Simulation** - implement the Panda robot and the objects in a Pybullet simulation
 
-:mechanical_arm: **Robot Control** - implementation with the mechanical arm
+:mechanical_arm: **Robot Control** - control of the mechanical arm to interact with the objects
 
 ## Functionnalities
 
@@ -40,10 +47,8 @@ python3 main.py filename.bag
 - [ ] Segmentation (random-view)
 - [x] Meshing (3D models)
 - [x] PyBullet Simulation Initialition
-- [ ] CAD Probabilistic Update
+- [ ] CAD Probabilistic Update (Gaussian Processes)
 - [X] Scene update
-- [ ] Robustness improvement (object shapes, point of view, performance...)
-
 
 ## Updates
 2022/11/20 - [meshconverter.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/Simulation/meshconverter.py) : mesh convertisser from 3D model (.stl) to point cloud (.ply) and vis versa <br />
