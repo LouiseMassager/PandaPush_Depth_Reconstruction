@@ -1,9 +1,7 @@
 # PandaPush_Depth_Reconstruction :video_camera: :game_die: :mechanical_arm: :robot:
-```diff
-- project ongoing
-```
+
 Project on the detection of 3D objects with a realsense Depth camera based on a classifier (Machine Learning) trained with a 3D model of the object.
-Potentially tested for the control of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
+This project has been realised for the aim of trajectory planning of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects.
 
 <img src="res/plan4.png" width=1000>
 
