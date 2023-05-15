@@ -127,8 +127,8 @@ topic update - use of realsense camera instead of ZED2
 
 #### Machine Learning
 - scikit-learn 1.2.1
-- tensorflow 2.11.0
-- keras 2.11.0
+- tensorflow 2.5.0
+- keras 2.5.0
 
 
 #### Simulation
