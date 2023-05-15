@@ -27,17 +27,17 @@ python3 main.py filename.bag
 
 :seedling: [**Neural Network Training**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/ML_training) - training of the neural network with the synthetic database generated
 
-### [On Run-time steps](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection)
+### On Run-time steps
 
-For simplicity of use, a majority of the code is stored in the [main.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection) file:
+For simplicity of use, a majority of the code is stored in the [main.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection/main.py) file:
 
-:video_camera: **Data Aquisition** - aquire and save RGBD data (.ply and .png) from the camera
+:video_camera: [**Data Aquisition**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection/main.py) - aquire and save RGBD data (.ply and .png) from the camera
 
-:abacus: **Treatment** - isolate objects from background, segment them, aquire their pose and convert them from point-clouds (.ply) to meshes (.stl)
+:abacus: [**Treatment**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection/main.py) - isolate objects from background, segment them, aquire their pose and convert them from point-clouds (.ply) to meshes (.stl)
 
-:desktop_computer: **Simulation** - implement the Panda robot and the objects in a Pybullet simulation
+:desktop_computer: [**Simulation**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection/main.py) - implement the Panda robot and the objects in a Pybullet simulation
 
-:mechanical_arm: **Robot Control** - control of the mechanical arm to interact with the objects
+:mechanical_arm: [**Robot Control**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection/main.py) - control of the mechanical arm to interact with the objects
 
 ## Functionnalities
 
