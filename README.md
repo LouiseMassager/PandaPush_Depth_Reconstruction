@@ -54,6 +54,17 @@ python3 main.py filename.bag
 - [ ] CAD Probabilistic Update (Gaussian Processes)
 - [X] Scene update
 
+
+## Results
+
+### Pre-design (Synthetic Database and Neural Network Training)
+<img src="res/training_res.png" width=1000>
+
+### Experimental Data
+<img src="res/experimental_res.png" width=1000>
+<img src="res/experimental_res2.png" width=1000>
+
+
 ## Updates
 2022/11/20 - [meshconverter.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/Simulation/meshconverter.py) : mesh convertisser from 3D model (.stl) to point cloud (.ply) and vis versa <br />
 2022/11/20 - [PybulletSimulation.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/Simulation/PybulletSimulation.py) : implementation of the 3D objects in Pybullet simulation <br />
