@@ -30,6 +30,7 @@ python3 main.py filename.bag
 ### [On Run-time steps](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection)
 
 For simplicity of use, a majority of the code is stored in the [main.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection) file:
+
 :video_camera: **Data Aquisition** - aquire and save RGBD data (.ply and .png) from the camera
 
 :abacus: **Treatment** - isolate objects from background, segment them, aquire their pose and convert them from point-clouds (.ply) to meshes (.stl)
