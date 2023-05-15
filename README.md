@@ -1,4 +1,4 @@
-# PandaPush_Depth_Reconstruction :video_camera: :package: :mechanical_arm: :robot: :computer:
+# PandaPush_Depth_Reconstruction :computer: :video_camera: :robot: :mechanical_arm: :package:
 
 Project on the **reconstruction of a scene observed by a realsense Depth camera in a PyBullet simulation through a supervised segmentation**. The latter is based on a Mask-RCNN neural network (Machine Learning) trained on a synthetic database (generated for this project). This project has been realised for the aim of trajectory planning of a Panda robot for non-prehensile manipulation (push tasks) with those 3D objects. 
 
