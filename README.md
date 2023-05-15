@@ -8,13 +8,13 @@ This project has been realised for the aim of trajectory planning of a Panda rob
 
 To record in live:
 ```bash
-cd UpdatedCode/2023_02_10
+cd model_free_detection
 python3 main.py
 ```
 
-To open a recording file "filename.bag", put it in the folder UpdatedCode/2023_02_10/data/recordings and then:
+To open a recording file *"filename.bag"*, put it in the folder *model_free_detection/data/recordings* and then run the following commands:
 ```bash
-cd UpdatedCode/2023_02_10
+cd model_free_detection
 python3 main.py filename.bag
 ```
 
