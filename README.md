@@ -8,13 +8,19 @@ This project was applied to detect ***unicolored cuboids and cylinders*** but wa
 
 ## Deployment
 
-To record a livestream:
+1. Download the neural network model, stored in [Google drive](https://drive.google.com/file/d/1n57O2nKsVMDgJbNW5ZxttaGIwd9qLF93/view?usp=sharing) due to its too size :
+```bash
+cd model_free_detection
+wget https://drive.google.com/file/d/1n57O2nKsVMDgJbNW5ZxttaGIwd9qLF93/view?usp=sharing
+```
+
+2. Either record a livestream:
 ```bash
 cd model_free_detection
 python3 main.py
 ```
 
-To open a recording file *"filename.bag"*, put it in the folder *model_free_detection/data/recordings* and then run the following commands:
+2. Or open a recording file *"filename.bag"*, put it in the folder *model_free_detection/data/recordings* and then run the following commands:
 ```bash
 cd model_free_detection
 python3 main.py filename.bag
