@@ -21,3 +21,6 @@ To **run the program on a recording** stored in a file *"filename.bag"*, put it 
 cd model_free_detection
 python3 main.py filename.bag
 ```
+## Results
+
+The program should at the end display the PyBullet simulation (to close with the interrupt key CTRL+C) as well as provide CAD of the different objects in the *"data/treatment"* folder.
