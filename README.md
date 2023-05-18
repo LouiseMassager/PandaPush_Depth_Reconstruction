@@ -127,7 +127,7 @@ topic update - use of realsense camera instead of ZED2
 - pymeshlab
 
 #### Computer Vision (CV)
-- opencv (cv2) '4.4.0'
+- opencv (cv2) 4.4.0
 - pyrealsense2 2.53.1
 - Pillow (PIL) 22.3.1
 
