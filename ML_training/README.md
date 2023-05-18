@@ -4,7 +4,7 @@ A new training can be realized to:
 
 - **improve performances** of the segmentation by **changing the dataset** (to have more images, different images, etc.). A new *"images.zip"* folder should then be used and the code run here as it is (see Deployement steps). The new dataset can be produced through the launch of the [synthetic database generator scripts](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation).<br />
 
-- **adding/changing the objects to detect**. In order to do so, changes in the synthetic dataset and the training should be done:
+- **adding/changing objects to detect**. In order to do so, changes in the synthetic dataset and the training should be done:
 > The synthetic database should be adapted to contain different labels in the segmentation text in *images/seg* folder (currently each line starting with "0" or a "1" correspond respectively to a cuboid or a cylinder). The number of classes can be decreased/increased but its numbering should start at 0 and increment of 1 for each new class. 
 >> This change can be realised in lines 591 to 596 of the [*make_scene.py*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/synthetic_database_generation/make_scene.py) script.
  
