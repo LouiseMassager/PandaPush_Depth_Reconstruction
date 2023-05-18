@@ -6,7 +6,7 @@ A new training can be realized to:
 > The synthetic database should be adapted to contain different labels in the segmentation text in *images/seg* folder (currently each line starting with "0" or a "1" correspond respectively to a cuboid or a cylinder). The number of classes can be decreased/increased but its numbering should start at 0 and increment of 1 for each new class. 
 >> This change can be realised in lines 591 to 596 of the [*make_scene.py*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/synthetic_database_generation/make_scene.py) script.
  
->The following changes should also be applied in the [training script] before its launch:
+>The following changes should also be applied in the [training script](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/ML_training/training_colaboratory.ipynb) before its launch:
 >> in *"CONFIGURATIONS-Training Configurations"* section: NUM_CLASSES should be equal to the number of classes + 1 <br />
 >> &#8594; NUM_CLASSES = 1 + 2  # background + cube&cylinder
 > 
