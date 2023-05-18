@@ -3,11 +3,11 @@ A new training can be realized to:
 - **improve performances** of the segmentation by realising a **more intensive training**. Parameters in the [training script](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/ML_training/training_colaboratory.ipynb) should be then tuned  (more epoch,lower learning rates, etc.). They are mainly defined upon call of the model.train() function in the *"TRAINING"* section. Following the changes in parameters, the code can be run as it is (see Deployement steps).
 - **improve performances** of the segmentation by **changing the dataset** (to have more images, different images, etc.). A new *"images.zip"* folder should then be used and the code run here as it is (see Deployement steps). The new dataset can be produced through the launch of the [synthetic database generator scripts](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation).
 - **adding/changing the objects to detect**. In order to do so, the synthetic database should be adapted to contain different labels in the segmentation text in *images/seg* folder (currently each line starting with "0" or a "1" correspond respectively to a cuboid or a cylinder). The number of classes can be decreased/increased but its numbering should start at 0 and increment of 1 for each new class. This change can be realised in lines 591 to 596 of the [*make_scene.py*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/synthetic_database_generation/make_scene.py) script. The following changes in before its launch:
-> in *"CONFIGURATIONS-Training Configurations"* section: NUM_CLASSES should be equal to the number of classes + 1 
+> in *"CONFIGURATIONS-Training Configurations"* section: NUM_CLASSES should be equal to the number of classes + 1 <br />
 > &#8594; NUM_CLASSES = 1 + 2  # background + cube&cylinder
 
-> in *"CONFIGURATIONS-Dataset Adaptation"* section:  the number of lines and significations should change to match the new classes
-> &#8594; self.add_class("shapes", 1, "cube") <\br>
+> in *"CONFIGURATIONS-Dataset Adaptation"* section:  the number of lines and significations should change to match the new classes<br />
+> &#8594; self.add_class("shapes", 1, "cube") <br />
 > &#8594; self.add_class("shapes", 2, "cylinder")
 
 ## Deployement
