@@ -20,7 +20,7 @@ cd model_free_detection
 python3 main.py
 ```
 
-2bis. Or **run the program on a recording** stored in a file "filename.bag"*, put it in the folder *model_free_detection/data/recordings* and then run the following commands:
+2bis. Or **run the program on a recording** stored in a file *"filename.bag"*, put it in the folder *"model_free_detection/data/recordings"* and then run the following commands:
 ```bash
 cd model_free_detection
 python3 main.py filename.bag
