@@ -24,4 +24,4 @@ python3 make_scene.py
 ```
 ## Results
 
-This program should resutl in a new dataset stored in the *"image"* folder. The following steps to include the changes in the main program would be to retrain the neural network with this new dataset: see [*"ML_training"*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/ML_training) folder.
+This program should result in a new dataset stored in the *"image"* folder. The following steps to include the changes in the main program would be to retrain the neural network with this new dataset: see [*"ML_training"*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/ML_training) folder.
