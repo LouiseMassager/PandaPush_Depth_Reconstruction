@@ -8,19 +8,19 @@ This project was applied to detect ***unicolored cuboids and cylinders*** but wa
 
 ## Deployment
 
-1. Download the **neural network model**, stored in [Google drive](https://drive.google.com/file/d/1HYM2qZfUeh4nNsfIYNdz92wCEfzZJ6Xp/view?usp=sharing) due to its too size (**250Mo** > GitHub's limit of 100Mo):
+1. Download the **neural network model**, stored in [Google drive](https://drive.google.com/file/d/1HYM2qZfUeh4nNsfIYNdz92wCEfzZJ6Xp/view?usp=sharing) due to its size (**250Mo** > GitHub's limit of 100Mo):
 ```bash
 cd model_free_detection
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1HYM2qZfUeh4nNsfIYNdz92wCEfzZJ6Xp' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1HYM2qZfUeh4nNsfIYNdz92wCEfzZJ6Xp" -O mask_rcnn_cubecyl2.h5 && rm -rf /tmp/cookies.txt
 ```
 
-2. Either record a livestream:
+2. Either record a **livestream**:
 ```bash
 cd model_free_detection
 python3 main.py
 ```
 
-2bis. Or open a recording file *"filename.bag"*, put it in the folder *model_free_detection/data/recordings* and then run the following commands:
+2bis. Or **run the program on a recording** stored in a file "filename.bag"*, put it in the folder *model_free_detection/data/recordings* and then run the following commands:
 ```bash
 cd model_free_detection
 python3 main.py filename.bag
