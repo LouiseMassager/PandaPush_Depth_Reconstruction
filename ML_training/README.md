@@ -16,7 +16,7 @@ A new training can be realized to:
 >> &#8594; self.add_class("shapes", 1, "cube") <br />
 >> &#8594; self.add_class("shapes", 2, "cylinder")
 
-## Deployement
+## Deployment
 steps for use on **host computer** with Tensorflow 2.5.0:
 
 1. download mask_rcnn_coco.h5 via link: https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5
