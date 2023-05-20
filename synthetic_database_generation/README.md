@@ -9,7 +9,7 @@ In order to adapt the synthetic database, this program should be editted dependi
 
 - **the objects to detect**: lines 582 to 596 of [*make_scene.py*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/synthetic_database_generation/make_scene.py) should be adapted. The new objects to consider can then either be already provided in CAD or generated/randomly modified via modifications in the [*make_shapes.py*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/synthetic_database_generation/make_shapes.py) script. Small changes in the training code will also be necessary : please refer to the README file in [*"ML_training"*](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/ML_training) folder. 
 
-## Deployement
+## Deployment
 
 1. Generate random objects CAD:
 ```bash
