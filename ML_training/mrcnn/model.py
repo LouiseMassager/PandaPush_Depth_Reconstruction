@@ -1213,8 +1213,7 @@ def mrcnn_mask_loss_graph(target_masks, target_class_ids, pred_masks):
 #  Data Generator
 ############################################################
 
-def load_image_gt(dataset, config, image_id, augmentation=None,
-                  use_mini_mask=False):
+def load_image_gt(dataset, config, image_id, augmentation=None):
     """Load and return ground truth data for an image (image, mask, bounding boxes).
 
     augmentation: Optional. An imgaug (https://github.com/aleju/imgaug) augmentation.
@@ -1271,7 +1270,7 @@ def load_image_gt(dataset, config, image_id, augmentation=None,
         assert image.shape == image_shape, "Augmentation shouldn't change image size"
         assert mask.shape == mask_shape, "Augmentation shouldn't change mask size"
         # Change mask back to bool
-        mask = mask.astype(bool)
+        mask = mask.astype(np.bool)
 
     # Note that some boxes might be all zeros if the corresponding mask got cropped out.
     # and here is to filter them out
@@ -1291,10 +1290,8 @@ def load_image_gt(dataset, config, image_id, augmentation=None,
     active_class_ids[source_class_ids] = 1
 
     # Resize masks to smaller size to reduce memory usage
-    if use_mini_mask:
+    if config.USE_MINI_MASK:
         mask = utils.minimize_mask(bbox, mask, config.MINI_MASK_SHAPE)
-    #if config.USE_MINI_MASK:
-    #    mask = utils.minimize_mask(bbox, mask, config.MINI_MASK_SHAPE)
 
     # Image meta data
     image_meta = compose_image_meta(image_id, original_shape, image.shape,
@@ -2157,8 +2154,9 @@ class MaskRCNN(object):
         """
         # Optimizer object
         optimizer = keras.optimizers.SGD(
-            lr=learning_rate, momentum=momentum,
+            learning_rate=learning_rate, momentum=momentum,
             clipnorm=self.config.GRADIENT_CLIP_NORM)
+
         # Add Losses
         loss_names = [
             "rpn_class_loss",  "rpn_bbox_loss",
@@ -2274,7 +2272,6 @@ class MaskRCNN(object):
 
     def train(self, train_dataset, val_dataset, learning_rate, epochs, layers,
               augmentation=None, custom_callbacks=None, no_augmentation_sources=None):
-        print("A")
         """Train the model.
         train_dataset, val_dataset: Training and validation Dataset objects.
         learning_rate: The learning rate to train with
@@ -2327,7 +2324,7 @@ class MaskRCNN(object):
         train_generator = DataGenerator(train_dataset, self.config, shuffle=True,
                                          augmentation=augmentation)
         val_generator = DataGenerator(val_dataset, self.config, shuffle=True)
-        print("B")
+
         # Create log_dir if it does not exist
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -2339,7 +2336,7 @@ class MaskRCNN(object):
             keras.callbacks.ModelCheckpoint(self.checkpoint_path,
                                             verbose=0, save_weights_only=True),
         ]
-        print("C")
+
         # Add custom callbacks to the list
         if custom_callbacks:
             callbacks += custom_callbacks
@@ -2348,9 +2345,8 @@ class MaskRCNN(object):
         log("\nStarting at epoch {}. LR={}\n".format(self.epoch, learning_rate))
         log("Checkpoint Path: {}".format(self.checkpoint_path))
         self.set_trainable(layers)
-        print("D")
         self.compile(learning_rate, self.config.LEARNING_MOMENTUM)
-        print("E")
+
         # Work-around for Windows: Keras fails on Windows when using
         # multiprocessing workers. See discussion here:
         # https://github.com/matterport/Mask_RCNN/issues/13#issuecomment-353124009
@@ -2358,23 +2354,22 @@ class MaskRCNN(object):
             workers = 0
         else:
             workers = multiprocessing.cpu_count()
-        print("F1")
-        workers=1
-        use_multiprocessing=False
-        print("F2")
+
+        # Multiprocessing failed on Colab
+        workers = 0
+
         self.keras_model.fit(
             train_generator,
             initial_epoch=self.epoch,
             epochs=epochs,
-            steps_per_epoch=self.config.STEPS_PER_EPOCH,
+            # steps_per_epoch=self.config.STEPS_PER_EPOCH,
             callbacks=callbacks,
             validation_data=val_generator,
-            validation_steps=self.config.VALIDATION_STEPS,
-            max_queue_size=100,
+            # validation_steps=self.config.VALIDATION_STEPS,
+            # max_queue_size=100,
             workers=workers,
             use_multiprocessing=workers > 1,
         )
-        print("G")
         self.epoch = max(self.epoch, epochs)
 
     def mold_inputs(self, images):
