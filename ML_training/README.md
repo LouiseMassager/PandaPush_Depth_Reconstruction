@@ -28,10 +28,10 @@ steps for use on **host computer** with Tensorflow 2.5.0:
 
 steps for use on **Colaboratory**:
 
-1. download on your drive : [mrcnn.zip](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/ML_training/mrcnn.zip) and [images.zip](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/ML_training/images.zip)
-2. optional : for better performances, select "Hardware accelerator: GPU" so as to access cuda and nvidia
-3. launch [training_colaboratory.ipynb](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/ML_training/training_colaboratory.ipynb) on colaboratory
+1. open [training_colaboratory.ipynb](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/blob/master/ML_training/training_colaboratory.ipynb) in Colaboratory
+2. optional : for better performances, select in Colaboratory's settings "Hardware accelerator: GPU" so as to access cuda and nvidia
+3. run Colaboratory
 
 ## Results
 
-This training should result in the creation of a new model stored in a .h5 files (default name: *"mask_rcnn_cubecyl2.h5"*). In order to incorporate this new model into the chore program, one just need to replace the current model (.h5) file in *"model_free_detection/"* by the new model.
+This training should result in the creation of a new model stored in a .h5 file (default name: *"mask_rcnn_cubecyl2.h5"*). In order to incorporate this new model into the chore program, one just need to replace the current model (.h5) file in *"model_free_detection/"* by the new model.
