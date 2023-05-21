@@ -13,13 +13,13 @@ In order to adapt the synthetic database, this program should be editted dependi
 
 1. Generate random objects CAD:
 ```bash
-cd synthetic_database_generation
+cd PandaPush_Depth_Reconstruction/synthetic_database_generation
 python3 make_shapes.py
 ```
 
 2. Generate the database through random scenes generated in a PyBullet simulation:
 ```bash
-cd synthetic_database_generation
+cd PandaPush_Depth_Reconstruction/synthetic_database_generation
 python3 make_scene.py
 ```
 ## Results
