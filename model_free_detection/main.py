@@ -25,6 +25,9 @@ import pybullet as p
 import pybullet_data
 import pybullet_utils.bullet_client as bc
 
+import threading
+import queue
+import time
 
 paths_default=["data/recordings/",
 		("data/data_aquisition/",["color/","depth/","ply/"]),
@@ -797,8 +800,6 @@ def extrusion(pcd,pcds,sidenormals,height):
 	side_point=points
 	side_color=colors
 	side_vertex=vertex
-	print(len(side_point))
-	print(len(side_vertex))
 	for v in range(20):
 		for i in range(len(points)): 
 			points[i,2]=(z-height)*(v+1)/21 + height/2
@@ -811,8 +812,6 @@ def extrusion(pcd,pcds,sidenormals,height):
 		side_point=np.concatenate((side_point, h.points), axis=0)
 		side_color=np.concatenate((side_color, h.colors), axis=0)
 		side_vertex=np.concatenate((side_vertex, h.normals), axis=0)
-		print(len(side_point))
-		print(len(side_vertex))
 	
 	sides = o3d.geometry.PointCloud()
 	sides.points = o3d.utility.Vector3dVector(side_point)
@@ -979,26 +978,27 @@ def setinplace(poses,target_path=paths_default[2],source_path=paths_default[6][0
 
 	i=0
 	for source_name in os.listdir(source_path):
-		print(source_path+source_name)
-		source = o3d.io.read_point_cloud(source_path+source_name)
-		source_down, source_fpfh = preprocess_point_cloud(source, voxel_size)
+		if source_name!="README.md":
+			print(source_path+source_name)
+			source = o3d.io.read_point_cloud(source_path+source_name)
+			source_down, source_fpfh = preprocess_point_cloud(source, voxel_size)
 
-		#if showing:
-		#	o3d.visualization.draw_geometries([source_down,target_down]) 
-		source_down.transform(inits[i])
-		#if showing:
-		#	o3d.visualization.draw_geometries([source_down,target_down]) 
-		result_ransac = execute_global_registration(source_down, target_down,
-				                            source_fpfh, target_fpfh,
-				                            voxel_size)
-		source_down=source_down.transform(result_ransac.transformation)
-		
-		#if showing:
-		#	o3d.visualization.draw_geometries([source_down,target_down]) 
-		
-		transformations.append(result_ransac.transformation)
-		sources_down.append( copy.deepcopy(source_down))
-		i+=1
+			#if showing:
+			#	o3d.visualization.draw_geometries([source_down,target_down]) 
+			source_down.transform(inits[i])
+			#if showing:
+			#	o3d.visualization.draw_geometries([source_down,target_down]) 
+			result_ransac = execute_global_registration(source_down, target_down,
+						                    source_fpfh, target_fpfh,
+						                    voxel_size)
+			source_down=source_down.transform(result_ransac.transformation)
+			
+			#if showing:
+			#	o3d.visualization.draw_geometries([source_down,target_down]) 
+			
+			transformations.append(result_ransac.transformation)
+			sources_down.append( copy.deepcopy(source_down))
+			i+=1
 
 	sources_down.append(target_down)
 	if showing:
@@ -1021,12 +1021,35 @@ def update_scene(poses=None,threshold=None,frame_numbers=[4]):
 		#4. Place objects in current scene 
 		transformations=setinplace(new_poses,showing=True)
 	
-	return transformations
+	return new_threshold,transformations
 
 
 ############################################################################
 ######################## PyBullet Simulation
 ############################################################################
+
+def get_input(message, channel):
+    response = input("")
+    channel.put(response)
+
+
+def input_with_timeout(message, timeout):
+    print(message)
+    channel = queue.Queue()
+    message = message + " [{} sec timeout] ".format(timeout)
+    thread = threading.Thread(target=get_input, args=(message, channel))
+    thread.daemon = True
+    thread.start()
+    try:
+        response = channel.get(True, timeout)
+        del(thread)
+        del(channel)
+        return response
+    except queue.Empty:
+        pass
+    del(thread)
+    del(channel)
+    return None
 
 def inverse_kinematics(body_idx, link: int, position: np.ndarray, orientation: np.ndarray=None) -> np.ndarray:
         if orientation is None:
@@ -1052,7 +1075,7 @@ def inverse_kinematics(body_idx, link: int, position: np.ndarray, orientation: n
         return np.array(joint_state)
 
 
-def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treatment/step3_Meshing/",path_target="data/treatment/step4_Simulation/"):
+def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treatment/step3_Meshing/",path_target="data/treatment/step4_Simulation/",user_update_requests=False, record=False):
 	#realtime=0 for no physics simulation, else realtime=1
 	
 	
@@ -1134,9 +1157,10 @@ def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treat
 		              useMaximalCoordinates=True)
 		objectIDs.append(a)
 
+	print("\n")
 	for elem in objectIDs:
 	  print("object ID {} is at pose :".format(elem)+ str(p.getBasePositionAndOrientation(elem)))
-	
+	print("\n")
 	
 	
 	### START SIMULATION
@@ -1159,60 +1183,92 @@ def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treat
 	
 	pandaId=p.loadURDF(file_name,basePosition=base_position,baseOrientation=base_orientation,useFixedBase=True)
 	
+	print("\n")
 	for joint, angle in zip(joint_indices, angles_neutral):
 		physics_client.resetJointState(pandaId, jointIndex=joint, targetValue=angle)
 		jointstate=physics_client.getJointState(pandaId, joint)[0]
 		print("joint {} should be at angle {} and is currently at {}".format(joint,angle,jointstate))
+	print("\n")
 	
-	"""
 	### SAVE IMAGES
-	images = p.getCameraImage(width,
-                          height,
-                          view_matrix,
-                          projection_matrix,
-                          shadow=True,
-                          renderer=p.ER_BULLET_HARDWARE_OPENGL)
-	# note: the ordering of height and width change based on the conversion
-	rgb_opengl = np.reshape(images[2], (height, width, 4)) * 1. / 255.
-	depth_buffer_opengl = np.reshape(images[3], [width, height])
-	depth_opengl = far * near / (far - (far - near) * depth_buffer_opengl)
-	seg_opengl = np.reshape(images[4], [width, height]) * 1. / 255.
-	time.sleep(1)
+	if record:
+		images = p.getCameraImage(width,
+		                  height,
+		                  view_matrix,
+		                  projection_matrix,
+		                  shadow=True,
+		                  renderer=p.ER_BULLET_HARDWARE_OPENGL)
+		# note: the ordering of height and width change based on the conversion
+		rgb_opengl = np.reshape(images[2], (height, width, 4)) * 1. / 255.
+		depth_buffer_opengl = np.reshape(images[3], [width, height])
+		depth_opengl = far * near / (far - (far - near) * depth_buffer_opengl)
+		seg_opengl = np.reshape(images[4], [width, height]) * 1. / 255.
+		time.sleep(1)
+		
+		# Plot both images - should show depth values of 0.45 over the cube and 0.5 over the plane
+		plt.rcParams['figure.figsize'] = [4, 10]	
+		
+		plt.subplot(6, 1, 1)
+		plt.imshow(depth_opengl, cmap='gray', vmin=0, vmax=1)
+		plt.title('Depth OpenGL3')
+
+		plt.subplot(5, 1, 3)
+		plt.imshow(rgb_opengl)
+		plt.title('RGB OpenGL3')
+
+		plt.subplot(5, 1, 5)
+		plt.imshow(seg_opengl)
+		plt.title('Seg OpenGL3')
+
+		plt.imsave(path_target+"depth.png", depth_opengl)
+		plt.imsave(path_target+"seg.png", seg_opengl)
+		plt.imsave(path_target+"rgb.png", rgb_opengl, cmap='gray', vmin=0, vmax=1)
 	
-	# Plot both images - should show depth values of 0.45 over the cube and 0.5 over the plane
-	plt.rcParams['figure.figsize'] = [4, 10]	
-	
-	plt.subplot(6, 1, 1)
-	plt.imshow(depth_opengl, cmap='gray', vmin=0, vmax=1)
-	plt.title('Depth OpenGL3')
-
-	plt.subplot(5, 1, 3)
-	plt.imshow(rgb_opengl)
-	plt.title('RGB OpenGL3')
-
-	plt.subplot(5, 1, 5)
-	plt.imshow(seg_opengl)
-	plt.title('Seg OpenGL3')
-
-	plt.imsave(path_target+"depth.png", depth_opengl)
-	plt.imsave(path_target+"seg.png", seg_opengl)
-	plt.imsave(path_target+"rgb.png", rgb_opengl, cmap='gray', vmin=0, vmax=1)
-	"""
 	
 	
 	### UPDATE SIMULATION (incomplete currently)
-	#new_poses,new_threshold=update_scene(frame_numbers=[10])
+	def user_request_update():
+		new_threshold, transformations =update_scene(frame_numbers=[10])
+		return new_threshold, transformations
 	
 	### RUN SIMULATION : panda control, object position display, image display
 	#ee_position=physics_client.getLinkState(pandaId, ee_link)[0] #get ee position
 	ee_target_position=np.asarray([0, 0, 0.2])
 	
+	
+	# SIMULATION LOOP
+	tic=time.time()
 	while (1):
+		toc=time.time()
+		
+		#render simulation
 		physics_client.stepSimulation()
+		#time.sleep(1)
 		
-		for elem in objectIDs:
-			print("object ID {} is at pose :".format(elem)+ str(p.getBasePositionAndOrientation(elem)))
+		#get info/update
+		if toc-tic >10: #each 10s
 		
+			#1. show current pose of objects
+			for elem in objectIDs:
+				print("object ID {} is at pose :".format(elem)+ str(p.getBasePositionAndOrientation(elem)))
+			
+			#2. optionnal: update object pose
+			if user_update_requests:
+				print("\n\n\nComputer ask user:")
+				user_input = input_with_timeout("To Update scene, press ENTER or any buttons within 5 seconds\nElse wait.", 5) #wait 5 seconds for user input, else pass
+				if user_input!=None:
+					#print("User pressed:{}".format(user_input))
+					print("Updating Simulation...")
+					new_threshold, transformations=user_request_update()
+					plane_transformation=threshold-new_threshold
+					print("\tThe camera has moved of {}\nThe objects have been subjected to the following roto-transformations:\n{}".format(plane_transformation, transformations))
+				else:
+					print("No Update Request\n\n\n")
+			
+			#3. reset timer
+			tic=time.time()
+		
+		#maintain control of robot
 		target_arm_angles=inverse_kinematics(body_idx=pandaId, link=ee_link, position=ee_target_position)[:7]
 		for joint, angle in zip(joint_indices, target_arm_angles):
 			physics_client.resetJointState(pandaId, jointIndex=joint, targetValue=angle)
@@ -1248,7 +1304,7 @@ def modelfree_detection_and_simulation():
 	meshing(num_of_objects)
 	
 	#5 pybullet simulation
-	scene_pybullet_simulation(poses,threshold,realtime=1)
+	scene_pybullet_simulation(poses,threshold,realtime=1,user_update_requests=True)
 	
 	return
 
