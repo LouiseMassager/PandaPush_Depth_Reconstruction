@@ -29,6 +29,9 @@ python3 main.py filename.bag
 ## Methodology
 
 ### On Run-time steps
+
+<img src="res/plan4.png" width=800>
+
 <sub> They corresponds to the main program that is the only file to be launched in order to run the current program as it so (therefore to detect cuboids and cylinders). For simplicity of use, a majority of the code is stored in the [main.py](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection/main.py) file: </sub>
 
 :video_camera: [**Data Aquisition**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection) - aquire and save RGBD data (.ply and .png) from the camera
@@ -39,16 +42,17 @@ python3 main.py filename.bag
 
 :mechanical_arm: [**Robot Control**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/model_free_detection) - control of the mechanical arm to interact with the objects
 
-<img src="res/plan4.png" width=800>
 
 ### Pre-design steps
+
+<img src="res/supervisedseg_steps.png" width=800>
+
 <sub> In order to adapt the project to detect other objects or improve performances, the segmentation model can be modified through changes in the synthetic database and training. Otherwise, if the project want to be used as it is, those files are not needed as the model as already be trained and integrated in the main program (on run-time steps). </sub>
 
 :file_cabinet: [**Synthetic Database Generation**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/synthetic_database_generation) - generation of random cuboids/cylinders and generation of random scenes in PyBullet
 
 :seedling: [**Neural Network Training**](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/ML_training) - training of the neural network with the synthetic database generated
 
-<img src="res/supervisedseg_steps.png" width=800>
 
 ## Functionnalities
 
