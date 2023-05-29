@@ -147,7 +147,9 @@ def data_aquisition(detection=False,saving=True,showing=False,frame_numbers=[4],
 		#display the depth frame & bgr frame(Color Frame)
 		if showing:
 			cv2.imshow("depth frame", depth_frame)
+			time.sleep(5)
 			cv2.imshow("bgr frame", bgr_frame)
+			time.sleep(5)
 		
 		# Quit the loop if we press escape key on keyboard
 		key = cv2.waitKey(500)
@@ -474,7 +476,7 @@ def maskrcnn(pcd,path_target,showing=False,saving_masks=False):
 	class InferenceConfig(ShapesConfig):
 	    GPU_COUNT = 1
 	    IMAGES_PER_GPU = 1
-	    DETECTION_MIN_CONFIDENCE = 0.75#0.85
+	    #DETECTION_MIN_CONFIDENCE = 0.90#0.85
 
 	inference_config = InferenceConfig()
 
@@ -647,12 +649,14 @@ def maskrcnn(pcd,path_target,showing=False,saving_masks=False):
 
 
 
-def o3d_segmentation(frame_number=4,seg_type="dbscan",path_source=paths_default[1][0],path_target=paths_default[2],showing=False):
+def o3d_segmentation(frame_number=4,seg_type="dbscan",path_source=paths_default[1][0],path_target=paths_default[2],showing=False,show_segmentation=True):
 	print("Segmentation...")
 	
 	#1. open pointcloud
 	model=path_source+"ply/"+str(frame_number)+".ply"
 	pcd = o3d.io.read_point_cloud(model)
+	if showing:
+		o3d.visualization.draw_geometries([pcd])
 	
 	#2. plane segmentation with RANSAC algorithm
 	pcd,threshold=ransac_plane_segmentation(pcd)
@@ -664,13 +668,14 @@ def o3d_segmentation(frame_number=4,seg_type="dbscan",path_source=paths_default[
 	if seg_type=="dbscan":
 		pcd=remove_board_outliers(pcd,showing=showing)
 	elif seg_type=="maskrcnn":
-		pcd=remove_outliers(pcd,showing=showing)
+		#pcd=remove_board_outliers(pcd,showing=showing)	#INTENSIVE
+		pcd=remove_outliers(pcd,showing=showing)		#NOT INTENSIVE
 	
 	#5. DBSCAN clustering
 	if seg_type=="dbscan":
 		num_of_objects=dbscan_clustering(pcd,path_target=path_target,showing=showing)
 	elif seg_type=="maskrcnn":
-		num_of_objects=maskrcnn(pcd,path_target=path_target,showing=showing,saving_masks=False)
+		num_of_objects=maskrcnn(pcd,path_target=path_target,showing=show_segmentation,saving_masks=False)
 	else:
 		print("Invalid input seg_type={}. It should be 'dbscan' or 'maskrcnn'".format(seg_type))
 	
@@ -851,7 +856,7 @@ def shape_completion(num_of_objects,threshold,path_source=paths_default[2],path_
 		bottom,edges=extrusion(pcd,pcds,sidenormals,height)
 		
 		#6. save final pointcloud
-		save_total_pointcloud(num,path_target,top=pcd_ori,bottom=bottom,edges=edges,showing=False)
+		save_total_pointcloud(num,path_target,top=pcd_ori,bottom=bottom,edges=edges,showing=showing)
 	return poses
 
 	
@@ -878,7 +883,7 @@ def meshing_with_o3d(num,path_source,path_target):
 	o3d.io.write_triangle_mesh(path_target+str(num)+".stl", mesh, write_ascii=False, compressed=False,write_vertex_normals=True, write_vertex_colors=True, print_progress=True)
 	return
 
-def meshing_with_pymeshlab(num,path_source,path_target):
+def meshing_with_pymeshlab(num,path_source,path_target,showing=False):
 	#ref: https://gist.github.com/shubhamwagh/0dc3b8173f662d39d4bf6f53d0f4d66b
 	ms = pymeshlab.MeshSet()
 	ms.load_new_mesh(path_source+str(num)+".ply")
@@ -890,24 +895,39 @@ def meshing_with_pymeshlab(num,path_source,path_target):
 	
 	ms.compute_texcoord_by_function_per_vertex()
 	ms.compute_texcoord_transfer_vertex_to_wedge()
-	ms.compute_texcoord_parametrization_triangle_trivial_per_wedge()
+	
+	computingcolor=True
+	increase=1
+	while computingcolor: # increase the texture dimension if get an error about the inter-triangle border being too much 
+		try:
+			ms.compute_texcoord_parametrization_triangle_trivial_per_wedge(textdim = 1024*increase)
+			computingcolor=False
+		except:
+			increase+=1
 	
 	ms.compute_color_by_function_per_face()#define material in .mtl file (ref: https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html)
 	
 	ms.compute_texmap_from_color(textname=f""+str(num))#define color map in .png file
 		
+	
+	
 	#ms.compute_color_transfer_face_to_vertex()
 	#ms.compute_color_transfer_mesh_to_face()
 	#ms.meshing_invert_face_orientation()
 	ms.save_current_mesh(path_target+str(num)+".obj")
+	
+	if showing:
+		mesh = o3d.io.read_triangle_mesh(path_target+str(num)+".obj")
+		o3d.visualization.draw_geometries([mesh])#, mesh_show_back_face=True)
+	
 	return
 
-def meshing(num_of_objects,path_source=paths_default[3],path_target=paths_default[4]):
+def meshing(num_of_objects,path_source=paths_default[3],path_target=paths_default[4],showing=False):
 	print("Meshing...")
 	
 	for num in range(num_of_objects):
 		#meshing_with_o3d(num,path_source,path_target) #=>previous method but backface problem
-		meshing_with_pymeshlab(num,path_source,path_target)
+		meshing_with_pymeshlab(num,path_source,path_target,showing=showing)
 	
 	print("\tDone")
 	return
@@ -1130,7 +1150,7 @@ def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treat
 		pos=camera_pose+np.asarray(poses[num][0].tolist())
 		models.extend([[path_source+str(num)+".obj",pos.tolist()]])
 	
-	shift = [0, -0.02, 0]
+	shift = [0, 0, 0]
 	meshScale = [1, 1, 1]
 	objectIDs=[]
 	for model in models:
@@ -1148,8 +1168,8 @@ def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treat
 		collisionShapeId=p.createCollisionShape(shapeType=p.GEOM_MESH,
 				                          fileName=model[0],
 				                          collisionFramePosition=shift,
-				                          meshScale=meshScale)
-		a=p.createMultiBody(baseMass=0.1,
+				                          meshScale=[0.9, 0.9, 0.9])
+		a=p.createMultiBody(baseMass=0.01,
 		              baseInertialFramePosition=[0, 0, 0],
 		              baseCollisionShapeIndex=collisionShapeId,
 		              baseVisualShapeIndex=visualShapeId,
@@ -1286,28 +1306,28 @@ def scene_pybullet_simulation(poses,threshold,realtime=0,path_source="data/treat
 ############################################################################
 
 
-def modelfree_detection_and_simulation():
+def modelfree_detection_and_simulation(showing=False,show_segmentation=True):
 	
 	#0. create data folders if not present
 	initialize()
 	
 	#1. data aquisition from realsense camera
-	data_aquisition()
+	data_aquisition(showing=showing)
 	
 	#2. pointcloud segmentation
-	num_of_objects,threshold=o3d_segmentation(seg_type="maskrcnn",showing=False)#maskrcnn
+	num_of_objects,threshold=o3d_segmentation(seg_type="maskrcnn",showing=showing,show_segmentation=show_segmentation)#maskrcnn
 	
 	#3. shape completion by extrusion to the tabletop plane
-	poses=shape_completion(num_of_objects,threshold,showing=False)
+	poses=shape_completion(num_of_objects,threshold,showing=showing)
 	
 	#4. meshing
-	meshing(num_of_objects)
+	meshing(num_of_objects,showing=showing)
 	
 	#5 pybullet simulation
-	scene_pybullet_simulation(poses,threshold,realtime=1,user_update_requests=True)
+	scene_pybullet_simulation(poses,threshold,realtime=0,user_update_requests=True)
 	
 	return
 
 
-modelfree_detection_and_simulation()
+modelfree_detection_and_simulation(showing=False)
 
