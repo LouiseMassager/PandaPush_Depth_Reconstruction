@@ -8,6 +8,8 @@ This project was applied to detect ***unicolored cuboids and cylinders*** but wa
 
 ## Deployment
 
+:clapper: To see a **video presenting how to deploy the different programs** : [CLICK HERE](https://youtu.be/2V4e05rwcc4) :clapper:
+
 1. Download the **neural network weights**, stored in [Google drive](https://drive.google.com/file/d/1HYM2qZfUeh4nNsfIYNdz92wCEfzZJ6Xp/view?usp=sharing) due to its size (**250Mo** > GitHub's limit of 100Mo):
 ```bash
 cd PandaPush_Depth_Reconstruction/model_free_detection
@@ -71,7 +73,7 @@ python3 main.py filename.bag
 
 
 ## Results
-:trophy: click [here](https://github.com/LouiseMassager/PandaPush_Depth_Reconstruction/tree/master/res) to see more results :trophy:
+:trophy: To see a **video presenting the results** : [CLICK HERE](https://youtu.be/m6DNtZX5T30) :trophy:
 
 ### Pre-design (Synthetic Database and Neural Network Training)
 <img src="res/training_res.png" width=800>
