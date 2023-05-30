@@ -257,7 +257,7 @@ def dbscan_clustering(pcd,path_target,weights=[(2,2,2),(1,1,1)],scaling=None,sho
 	print("\tDBSCAN clustering...")
 	
 	#initialization
-	o3d.io.write_point_cloud(target_path+"total.ply", pcd, write_ascii=False, compressed=False, print_progress=True)
+	o3d.io.write_point_cloud(path_target+"total.ply", pcd, write_ascii=False, compressed=False, print_progress=True)
 	points=np.asarray(pcd.points)
 	colors=np.asarray(pcd.colors)
 	vertex=np.asarray(pcd.normals)
@@ -308,7 +308,7 @@ def dbscan_clustering(pcd,path_target,weights=[(2,2,2),(1,1,1)],scaling=None,sho
 		out_pc.colors = o3d.utility.Vector3dVector(np.asarray(pcd.colors)[labels == a])
 		out_pc.normals = o3d.utility.Vector3dVector(np.asarray(pcd.normals)[labels == a])
 		pcds.append(out_pc)
-		o3d.io.write_point_cloud(target_path+str(a)+".ply", out_pc, write_ascii=False, compressed=False, print_progress=True)
+		o3d.io.write_point_cloud(path_target+str(a)+".ply", out_pc, write_ascii=False, compressed=False, print_progress=True)
 	
 	if showing:	
 		o3d.visualization.draw_geometries(pcds)
@@ -1315,7 +1315,7 @@ def modelfree_detection_and_simulation(showing=False,show_segmentation=True):
 	data_aquisition(showing=showing)
 	
 	#2. pointcloud segmentation
-	num_of_objects,threshold=o3d_segmentation(seg_type="maskrcnn",showing=showing,show_segmentation=show_segmentation)#maskrcnn
+	num_of_objects,threshold=o3d_segmentation(seg_type="maskrcnn",showing=showing,show_segmentation=show_segmentation) #alternative => seg_type=dbscan
 	
 	#3. shape completion by extrusion to the tabletop plane
 	poses=shape_completion(num_of_objects,threshold,showing=showing)
